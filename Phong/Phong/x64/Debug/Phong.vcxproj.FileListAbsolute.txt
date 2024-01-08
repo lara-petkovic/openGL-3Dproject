@@ -1,4 +1,0 @@
-C:\Users\Lenovo\Desktop\Phong\x64\Debug\glew32.dll
-C:\Users\WINDOWS 10\Desktop\Phong\x64\Debug\glew32.dll
-C:\Users\Laptop\Downloads\Phong\Phong\x64\Debug\glew32.dll
-C:\Users\Laptop\Desktop\Phong - Copy\Phong\x64\Debug\glew32.dll
