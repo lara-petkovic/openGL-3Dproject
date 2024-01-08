@@ -92,18 +92,18 @@ int main(void)
         return 3;
     }
 
-    unsigned int unifiedShader = createShader("texture.vert", "texture.frag");
+    unsigned int textureShader = createShader("texture.vert", "texture.frag");
     unsigned int baseShader = createShader("base.vert", "base.frag");
     unsigned int dronShader = createShader("dron.vert", "dron.frag");
-    int colorLoc = glGetUniformLocation(unifiedShader, "color");
+    int colorLoc = glGetUniformLocation(textureShader, "color");
 
     float vertices[] = {
-    -1.0,0.0f, -1.0,  0.0, 0.0,
-     1.0,0.0f, -1.0,  1.0, 0.0,
-    -1.0,0.0f,  1.0,  0.0, 1.0,
+    -1.0, 0.0, -1.0,  0.0, 0.0,
+     1.0, 0.0, -1.0,  1.0, 0.0,
+    -1.0, 0.0,  1.0,  0.0, 1.0,
 
-     1.0,0.0f, -1.0,  1.0, 0.0,
-     1.0,0.0f,  1.0,  1.0, 1.0
+     1.0, 0.0, -1.0,  1.0, 0.0,
+     1.0, 0.0,  1.0,  1.0, 1.0
     };
 
     unsigned int stride = (3 + 2) * sizeof(float);
@@ -137,7 +137,7 @@ int main(void)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glBindTexture(GL_TEXTURE_2D, 0);
-    unsigned uTexLoc = glGetUniformLocation(unifiedShader, "uTex");
+    unsigned uTexLoc = glGetUniformLocation(textureShader, "uTex");
     glUniform1i(uTexLoc, 0);
 
     // Opis baze -----------------------------------------------------------------------
@@ -241,20 +241,20 @@ int main(void)
 
     glm::mat4 model = glm::mat4(1.0f); //Matrica transformacija - mat4(1.0f) generise jedinicnu matricu
     model[0] *= -1;
-    unsigned int modelLocTex = glGetUniformLocation(unifiedShader, "uM");
+    unsigned int modelLocTex = glGetUniformLocation(textureShader, "uM");
     unsigned int modelLocDron = glGetUniformLocation(dronShader, "uM");
     unsigned int modelLocBase = glGetUniformLocation(baseShader, "uM");
 
 
-    glm::mat4 view1; //Matrica pogleda (kamere)
-    view1 = glm::lookAt(glm::vec3(0.0f, 1.0f, -1.2f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    unsigned int viewLocTex = glGetUniformLocation(unifiedShader, "uV");
+    glm::mat4 view; //Matrica pogleda (kamere)
+    view = glm::lookAt(glm::vec3(0.0f, 1.0f, -1.2f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    unsigned int viewLocTex = glGetUniformLocation(textureShader, "uV");
     unsigned int viewLocDron = glGetUniformLocation(dronShader, "uV");
     unsigned int viewLocBase = glGetUniformLocation(baseShader, "uV");
 
 
-    glm::mat4 projectionP = glm::perspective(glm::radians(90.0f), (float)wWidth / (float)wHeight, 0.1f, 100.0f); //Matrica perspektivne projekcije (FOV, Aspect Ratio, prednja ravan, zadnja ravan)
-    unsigned int projectionLocTex = glGetUniformLocation(unifiedShader, "uP");
+    glm::mat4 projection = glm::perspective(glm::radians(90.0f), (float)wWidth / (float)wHeight, 0.1f, 100.0f); //Matrica perspektivne projekcije (FOV, Aspect Ratio, prednja ravan, zadnja ravan)
+    unsigned int projectionLocTex = glGetUniformLocation(textureShader, "uP");
     unsigned int projectionLocDron = glGetUniformLocation(dronShader, "uP");
     unsigned int projectionLocBase = glGetUniformLocation(baseShader, "uP");
     
@@ -295,10 +295,10 @@ int main(void)
         glClearColor(0.5, 0.5, 0.5, 1.0);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        glUseProgram(unifiedShader);
+        glUseProgram(textureShader);
         glUniformMatrix4fv(modelLocTex, 1, GL_FALSE, glm::value_ptr(model)); //(Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
-        glUniformMatrix4fv(viewLocTex, 1, GL_FALSE, glm::value_ptr(view1));
-        glUniformMatrix4fv(projectionLocTex, 1, GL_FALSE, glm::value_ptr(projectionP));
+        glUniformMatrix4fv(viewLocTex, 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(projectionLocTex, 1, GL_FALSE, glm::value_ptr(projection));
         glBindVertexArray(VAO[0]);
 
         glActiveTexture(GL_TEXTURE0);
@@ -329,8 +329,8 @@ int main(void)
         // Renderovanje pozadine LED sijalice
         glUseProgram(baseShader);
         glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, glm::value_ptr(model)); //(Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
-        glUniformMatrix4fv(viewLocBase, 1, GL_FALSE, glm::value_ptr(view1));
-        glUniformMatrix4fv(projectionLocBase, 1, GL_FALSE, glm::value_ptr(projectionP));
+        glUniformMatrix4fv(viewLocBase, 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(projectionLocBase, 1, GL_FALSE, glm::value_ptr(projection));
         glBindVertexArray(VAOLEDBackground);
         colorLoc = glGetUniformLocation(baseShader, "color");
         glUniform3f(colorLoc, 0.3, 0.2, 0.2);
@@ -372,8 +372,8 @@ int main(void)
             moveDrone(window, droneX, droneY, droneSpeed, wWidth, wHeight);
             glUseProgram(dronShader);
             glUniformMatrix4fv(modelLocDron, 1, GL_FALSE, glm::value_ptr(model)); //(Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
-            glUniformMatrix4fv(viewLocDron, 1, GL_FALSE, glm::value_ptr(view1));
-            glUniformMatrix4fv(projectionLocDron, 1, GL_FALSE, glm::value_ptr(projectionP));
+            glUniformMatrix4fv(viewLocDron, 1, GL_FALSE, glm::value_ptr(view));
+            glUniformMatrix4fv(projectionLocDron, 1, GL_FALSE, glm::value_ptr(projection));
             glBindVertexArray(VAOBlue);
             GLint translationLoc = glGetUniformLocation(dronShader, "uTranslation");
             glUniform2f(translationLoc, droneX, droneY);
@@ -409,8 +409,8 @@ int main(void)
 
             glUseProgram(dronShader);
             glUniformMatrix4fv(modelLocDron, 1, GL_FALSE, glm::value_ptr(model)); //(Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
-            glUniformMatrix4fv(viewLocDron, 1, GL_FALSE, glm::value_ptr(view1));
-            glUniformMatrix4fv(projectionLocDron, 1, GL_FALSE, glm::value_ptr(projectionP));
+            glUniformMatrix4fv(viewLocDron, 1, GL_FALSE, glm::value_ptr(view));
+            glUniformMatrix4fv(projectionLocDron, 1, GL_FALSE, glm::value_ptr(projection));
             glBindVertexArray(VAOBlue);
             GLint translationLoc = glGetUniformLocation(dronShader, "uTranslation");
             glUniform2f(translationLoc, helicopterPositions[i].x, helicopterPositions[i].y);
@@ -447,7 +447,7 @@ int main(void)
     glDeleteVertexArrays(1, &VAOLED);
     glDeleteBuffers(1, &VBOLEDBackground);
     glDeleteVertexArrays(1, &VAOLEDBackground);
-    glDeleteProgram(unifiedShader);
+    glDeleteProgram(textureShader);
     glDeleteProgram(baseShader);
 
     for (int i = 0; i < DRONES_LEFT; i++) {
