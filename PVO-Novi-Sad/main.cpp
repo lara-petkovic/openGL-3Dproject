@@ -240,6 +240,7 @@ int main(void)
     }
 
     glm::mat4 model = glm::mat4(1.0f); //Matrica transformacija - mat4(1.0f) generise jedinicnu matricu
+    model[0] *= -1;
     unsigned int modelLocTex = glGetUniformLocation(unifiedShader, "uM");
     unsigned int modelLocDron = glGetUniformLocation(dronShader, "uM");
     unsigned int modelLocBase = glGetUniformLocation(baseShader, "uM");
