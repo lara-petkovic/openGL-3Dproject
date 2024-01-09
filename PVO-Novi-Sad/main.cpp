@@ -17,12 +17,81 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <vector>
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 
 // Za koptere
 #include <ctime>
 #include <random>
 #include <chrono>
 
+struct ModelData {
+    std::vector<glm::vec3> vertices;
+    std::vector<glm::vec2> textureCoords;
+    std::vector<glm::vec3> normals;
+};
+
+void processMesh(aiMesh* mesh, const aiScene* scene, ModelData& modelData) {
+    for (unsigned int i = 0; i < mesh->mNumVertices; ++i) {
+        glm::vec3 vertex;
+        vertex.x = mesh->mVertices[i].x;
+        vertex.y = mesh->mVertices[i].y;
+        vertex.z = mesh->mVertices[i].z;
+        modelData.vertices.push_back(vertex);
+
+        if (mesh->HasTextureCoords(0)) {
+            glm::vec2 texCoord;
+            texCoord.x = mesh->mTextureCoords[0][i].x;
+            texCoord.y = mesh->mTextureCoords[0][i].y;
+            modelData.textureCoords.push_back(texCoord);
+        }
+
+        if (mesh->HasNormals()) {
+            glm::vec3 normal;
+            normal.x = mesh->mNormals[i].x;
+            normal.y = mesh->mNormals[i].y;
+            normal.z = mesh->mNormals[i].z;
+            modelData.normals.push_back(normal);
+        }
+        else {
+            // Handle the case where normals are not available in the mesh
+            // You may choose to calculate normals or use default values
+            modelData.normals.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
+        }
+    }
+}
+
+
+
+void processNode(aiNode* node, const aiScene* scene, ModelData& modelData) {
+    for (unsigned int i = 0; i < node->mNumMeshes; ++i) {
+        aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
+        processMesh(mesh, scene, modelData);
+    }
+
+    for (unsigned int i = 0; i < node->mNumChildren; ++i) {
+        processNode(node->mChildren[i], scene, modelData);
+    }
+}
+
+
+ModelData loadModel(const char* filePath) {
+    ModelData modelData;
+
+    Assimp::Importer importer;
+    const aiScene* scene = importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_FlipUVs);
+
+    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
+        std::cerr << "Error loading model: " << importer.GetErrorString() << std::endl;
+        return modelData;
+    }
+
+    processNode(scene->mRootNode, scene, modelData);
+
+    return modelData;
+}
 
 unsigned int compileShader(GLenum type, const char* source);
 unsigned int createShader(const char* vsSource, const char* fsSource);
@@ -91,6 +160,26 @@ int main(void)
         std::cout << "Greska pri ucitavanju GLEW biblioteke!\n";
         return 3;
     }
+
+    const char* modelPath = "res/uploads_files_2452740_Obj_rock.obj";
+    ModelData modelData = loadModel(modelPath);
+
+    unsigned int mountainVAO, mountainVBO;
+
+    glGenVertexArrays(1, &mountainVAO);
+    glGenBuffers(1, &mountainVBO);
+
+    glBindVertexArray(mountainVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, mountainVBO);
+    glBufferData(GL_ARRAY_BUFFER, modelData.vertices.size() * sizeof(glm::vec3), &modelData.vertices[0], GL_STATIC_DRAW);
+
+    // Specify the attribute pointers
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    // Unbind VAO and VBO
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
 
     unsigned int textureShader = createShader("texture.vert", "texture.frag");
     unsigned int baseShader = createShader("base.vert", "base.frag");
@@ -240,14 +329,13 @@ int main(void)
     }
 
     glm::mat4 model = glm::mat4(1.0f); //Matrica transformacija - mat4(1.0f) generise jedinicnu matricu
-    model[0] *= -1;
     unsigned int modelLocTex = glGetUniformLocation(textureShader, "uM");
     unsigned int modelLocDron = glGetUniformLocation(dronShader, "uM");
     unsigned int modelLocBase = glGetUniformLocation(baseShader, "uM");
 
 
     glm::mat4 view; //Matrica pogleda (kamere)
-    view = glm::lookAt(glm::vec3(0.0f, 1.0f, -1.2f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    view = glm::lookAt(glm::vec3(1.0f, 1.0f, -1.2f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     unsigned int viewLocTex = glGetUniformLocation(textureShader, "uV");
     unsigned int viewLocDron = glGetUniformLocation(dronShader, "uV");
     unsigned int viewLocBase = glGetUniformLocation(baseShader, "uV");
@@ -262,6 +350,7 @@ int main(void)
 
     while (!glfwWindowShouldClose(window))
     {
+
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         {
             glfwSetWindowShouldClose(window, GL_TRUE);
@@ -295,7 +384,12 @@ int main(void)
         glClearColor(0.5, 0.5, 0.5, 1.0);
         glClear(GL_COLOR_BUFFER_BIT);
 
+
+        model = glm::mat4(1.0);
+        glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, glm::value_ptr(model));
+
         glUseProgram(textureShader);
+        model[0] *= -1;
         glUniformMatrix4fv(modelLocTex, 1, GL_FALSE, glm::value_ptr(model)); //(Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
         glUniformMatrix4fv(viewLocTex, 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(projectionLocTex, 1, GL_FALSE, glm::value_ptr(projection));
@@ -433,6 +527,17 @@ int main(void)
         }
 
         moveHelicoptersTowardsCityCenter(0.42, 0.08, droneSpeed / 3);
+
+        // Renderovanje planine
+        glUseProgram(baseShader);
+        glBindVertexArray(mountainVAO);
+        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
+        model = glm::scale(model, glm::vec3(0.1));
+        colorLoc = glGetUniformLocation(baseShader, "color");
+        glUniform3f(colorLoc, 112.0/255.0, 62.0/255.0, 35.0/255.0);
+        glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, glm::value_ptr(model));
+        glDrawArrays(GL_TRIANGLES, 0, modelData.vertices.size());
+        glBindVertexArray(0); // Odvezi VAO
 
         glfwSwapBuffers(window);
         glfwPollEvents();
