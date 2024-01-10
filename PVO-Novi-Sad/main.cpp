@@ -118,14 +118,14 @@ int main(void)
     }
 
     const char* modelPath = "res/uploads_files_2452740_Obj_rock.obj";
-    ModelData modelData = loadModel(modelPath);
+    ModelData mountain = loadModel(modelPath);
 
     unsigned int mountainVAO, mountainVBO;
     glGenVertexArrays(1, &mountainVAO);
     glGenBuffers(1, &mountainVBO);
     glBindVertexArray(mountainVAO);
     glBindBuffer(GL_ARRAY_BUFFER, mountainVBO);
-    glBufferData(GL_ARRAY_BUFFER, modelData.vertices.size() * sizeof(vec3), &modelData.vertices[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, mountain.vertices.size() * sizeof(vec3), &mountain.vertices[0], GL_STATIC_DRAW);
 
     // Specify the attribute pointers
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
@@ -150,40 +150,40 @@ int main(void)
     };
 
 
-    // Phong Material Texture Shader
-    unsigned PhongMaterialTextureShader = createShader("base.vert", "phong.frag");
-    glUseProgram(PhongMaterialTextureShader);
+    //// Phong Material Texture Shader
+    //unsigned PhongMaterialTextureShader = createShader("base.vert", "phong.frag");
+    //glUseProgram(PhongMaterialTextureShader);
 
-    // Directional Light
-    glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uDirLight.Direction"), -3.0, -3.0, 0.0);
-    glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uDirLight.Ka"), 0.1f, 0.1f, 0.05f);
-    glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uDirLight.Kd"), 0.5f, 0.5f, 0.25f);
-    glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uDirLight.Ks"), 1.0f, 1.0f, 1.0f);
+    //// Directional Light
+    //glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uDirLight.Direction"), -3.0, -3.0, 0.0);
+    //glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uDirLight.Ka"), 0.1f, 0.1f, 0.05f);
+    //glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uDirLight.Kd"), 0.5f, 0.5f, 0.25f);
+    //glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uDirLight.Ks"), 1.0f, 1.0f, 1.0f);
 
-    // Point Light
-    glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Ka"), 0.1f, 0.1f, 0.0f);
-    glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Kd"), 0.8f, 0.5f, 0.0f);
-    glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Ks"), 1.0f, 1.0f, 0.0f);
-    glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Kc"), 1.0f);
-    glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Kl"), 0.8f);
-    glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Kq"), 2.0f);
+    //// Point Light
+    //glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Ka"), 0.1f, 0.1f, 0.0f);
+    //glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Kd"), 0.8f, 0.5f, 0.0f);
+    //glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Ks"), 1.0f, 1.0f, 0.0f);
+    //glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Kc"), 1.0f);
+    //glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Kl"), 0.8f);
+    //glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Kq"), 2.0f);
 
-    // Spotlight
-    glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.Position"), 3.0f, 2.0f, -2.0f);
-    glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.Direction"), 0.0f, -1.0f, 1.0f);
-    glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.Ka"), 0.5f, 0.0f, 0.0f);
-    glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.Kd"), 0.5f, 0.0f, 0.0f);
-    glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.Ks"), 0.5f, 0.0f, 0.0f);
-    glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.Kc"), 1.0f);
-    glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.Kl"), 0.092f);
-    glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.Kq"), 0.032f);
-    //glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.InnerCutOff"), cos(glm_rad(5.5f)));
-    //glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.OuterCutOff"), cos(glm_rad(17.5f)));
+    //// Spotlight
+    //glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.Position"), 3.0f, 2.0f, -2.0f);
+    //glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.Direction"), 0.0f, -1.0f, 1.0f);
+    //glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.Ka"), 0.5f, 0.0f, 0.0f);
+    //glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.Kd"), 0.5f, 0.0f, 0.0f);
+    //glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.Ks"), 0.5f, 0.0f, 0.0f);
+    //glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.Kc"), 1.0f);
+    //glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.Kl"), 0.092f);
+    //glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.Kq"), 0.032f);
+    ////glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.InnerCutOff"), cos(glm_rad(5.5f)));
+    ////glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.OuterCutOff"), cos(glm_rad(17.5f)));
 
-    // Material
-    glUniform1i(glGetUniformLocation(PhongMaterialTextureShader, "uMaterial.Kd"), 0);
-    glUniform1i(glGetUniformLocation(PhongMaterialTextureShader, "uMaterial.Ks"), 1);
-    glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uMaterial.Shininess"), 128.0f);
+    //// Material
+    //glUniform1i(glGetUniformLocation(PhongMaterialTextureShader, "uMaterial.Kd"), 0);
+    //glUniform1i(glGetUniformLocation(PhongMaterialTextureShader, "uMaterial.Ks"), 1);
+    //glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uMaterial.Shininess"), 128.0f);
 
     glUseProgram(0);
 
@@ -548,10 +548,35 @@ int main(void)
         colorLoc = glGetUniformLocation(baseShader, "color");
         glUniform3f(colorLoc, 112.0/255.0, 62.0/255.0, 35.0/255.0);
         glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model));
-        glDrawArrays(GL_TRIANGLES, 0, modelData.vertices.size());
-        glBindVertexArray(0); // Odvezi VAO
+        glDrawArrays(GL_TRIANGLES, 0, mountain.vertices.size());
+        glBindVertexArray(0);
 
-        vec3 DirectLightPosition = { 1.0, 0.7, 2.0 };
+        //vec3 PointLightPosition = { 0.0, 0.0, -1.0 };
+        //float constantAttenuation = 1.0;
+        //float linearAttenuation = 0.09;
+        //float quadraticAttenuation = 0.032;
+        //vec3 specular = { 0.3, 0.3, 0.3 };
+
+        //// Assuming your mountain is positioned at (mountainX, mountainY, mountainZ)
+        //vec3 mountainPosition = vec3(mountain.vertices[0], mountain.vertices[1], mountain.vertices[2]);
+
+        //// Set the point light position to be at the mountain's position
+        //PointLightPosition = mountainPosition;
+
+        //// Calculate the direction from the light position to the mountain position
+        //vec3 lightDirection = normalize(mountainPosition - PointLightPosition);
+
+        //// Set other properties in your shader
+        //glUseProgram(PhongMaterialTextureShader);
+        //glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Position"), PointLightPosition.x, PointLightPosition.y, PointLightPosition.z);
+        //glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Ka"), 0.3, 0.3, 0.0);
+        //glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Kd"), 0.3, 0.3, 0.0);
+        //glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Ks"), specular[0], specular[1], specular[2]);
+        //glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Kc"), constantAttenuation);
+        //glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Kl"), linearAttenuation);
+        //glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Kq"), quadraticAttenuation);
+
+
 
 
         glfwSwapBuffers(window);
