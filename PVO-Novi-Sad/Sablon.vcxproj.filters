@@ -42,5 +42,8 @@
     <None Include="texture.vert">
       <Filter>Source Files\Shader Files</Filter>
     </None>
+    <None Include="phong.frag">
+      <Filter>Source Files\Shader Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

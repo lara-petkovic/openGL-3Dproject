@@ -150,6 +150,7 @@
     <None Include="dron.frag" />
     <None Include="dron.vert" />
     <None Include="packages.config" />
+    <None Include="phong.frag" />
     <None Include="texture.frag" />
     <None Include="texture.vert" />
   </ItemGroup>

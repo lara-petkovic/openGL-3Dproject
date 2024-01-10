@@ -2,11 +2,18 @@
 // Opis: Protiv-vazdušna odbrana Novog Sada 
 
 #define _CRT_SECURE_NO_WARNINGS
+#define STB_IMAGE_IMPLEMENTATION
+
 #define CRES 30
 #define DRONES_LEFT 7
-#define STB_IMAGE_IMPLEMENTATION
+#define CAMERA_X_LOC 0.0f
+#define CAMERA_Y_LOC 1.0f
+#define CAMERA_Z_LOC -1.0f
+
 #include "stb_image.h"
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -27,81 +34,30 @@
 #include <random>
 #include <chrono>
 
+using namespace glm;
+using namespace std;
+
 struct ModelData {
-    std::vector<glm::vec3> vertices;
-    std::vector<glm::vec2> textureCoords;
-    std::vector<glm::vec3> normals;
+    vector<vec3> vertices;
+    vector<vec2> textureCoords;
+    vector<vec3> normals;
 };
 
-void processMesh(aiMesh* mesh, const aiScene* scene, ModelData& modelData) {
-    for (unsigned int i = 0; i < mesh->mNumVertices; ++i) {
-        glm::vec3 vertex;
-        vertex.x = mesh->mVertices[i].x;
-        vertex.y = mesh->mVertices[i].y;
-        vertex.z = mesh->mVertices[i].z;
-        modelData.vertices.push_back(vertex);
-
-        if (mesh->HasTextureCoords(0)) {
-            glm::vec2 texCoord;
-            texCoord.x = mesh->mTextureCoords[0][i].x;
-            texCoord.y = mesh->mTextureCoords[0][i].y;
-            modelData.textureCoords.push_back(texCoord);
-        }
-
-        if (mesh->HasNormals()) {
-            glm::vec3 normal;
-            normal.x = mesh->mNormals[i].x;
-            normal.y = mesh->mNormals[i].y;
-            normal.z = mesh->mNormals[i].z;
-            modelData.normals.push_back(normal);
-        }
-        else {
-            // Handle the case where normals are not available in the mesh
-            // You may choose to calculate normals or use default values
-            modelData.normals.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
-        }
-    }
-}
-
-
-
-void processNode(aiNode* node, const aiScene* scene, ModelData& modelData) {
-    for (unsigned int i = 0; i < node->mNumMeshes; ++i) {
-        aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-        processMesh(mesh, scene, modelData);
-    }
-
-    for (unsigned int i = 0; i < node->mNumChildren; ++i) {
-        processNode(node->mChildren[i], scene, modelData);
-    }
-}
-
-
-ModelData loadModel(const char* filePath) {
-    ModelData modelData;
-
-    Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_FlipUVs);
-
-    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
-        std::cerr << "Error loading model: " << importer.GetErrorString() << std::endl;
-        return modelData;
-    }
-
-    processNode(scene->mRootNode, scene, modelData);
-
-    return modelData;
-}
 
 unsigned int compileShader(GLenum type, const char* source);
 unsigned int createShader(const char* vsSource, const char* fsSource);
 void setCircle(float  circle[96], float r, float xPomeraj, float zPomeraj);
+void setDronesLeftCircle(float  circle[96], float r, float xPomeraj, float zPomeraj);
 static unsigned loadImageToTexture(const char* filePath);
 void moveDrone(GLFWwindow* window, float& droneX, float& droneY, float droneSpeed, unsigned int wWidth, unsigned int wHeight);
 void generateHelicopterPositions(int number);
 void moveHelicoptersTowardsCityCenter(float cityCenterX, float cityCenterY, float speed);
 bool checkCollision(float object1X, float object1Y, float object1Radius, float object2X, float object2Y, float object2Radius);
 bool isDronOutsideScreen(float droneX, float droneY);
+ModelData loadModel(const char* filePath);
+void processMesh(aiMesh* mesh, const aiScene* scene, ModelData& modelData);
+void processNode(aiNode* node, const aiScene* scene, ModelData& modelData);
+
 
 struct Location {
     float x;
@@ -117,14 +73,14 @@ bool coptersOnScreen = true;
 int numberOfCollied = 0;
 bool isMapHidden = false;
 Location helicopterPositions[5];
-auto startTime = std::chrono::high_resolution_clock::now();
+auto startTime = chrono::high_resolution_clock::now();
 
 
 int main(void)
 {
     if (!glfwInit())
     {
-        std::cout << "Greska pri ucitavanju GLFW biblioteke!\n";
+        cout << "Greska pri ucitavanju GLFW biblioteke!\n";
         return 1;
     }
 
@@ -147,7 +103,7 @@ int main(void)
 
     if (window == NULL)
     {
-        std::cout << "Greska pri formiranju prozora!\n";
+        cout << "Greska pri formiranju prozora!\n";
         glfwTerminate();
         return 2;
     }
@@ -157,7 +113,7 @@ int main(void)
 
     if (glewInit() != GLEW_OK)
     {
-        std::cout << "Greska pri ucitavanju GLEW biblioteke!\n";
+        cout << "Greska pri ucitavanju GLEW biblioteke!\n";
         return 3;
     }
 
@@ -165,13 +121,11 @@ int main(void)
     ModelData modelData = loadModel(modelPath);
 
     unsigned int mountainVAO, mountainVBO;
-
     glGenVertexArrays(1, &mountainVAO);
     glGenBuffers(1, &mountainVBO);
-
     glBindVertexArray(mountainVAO);
     glBindBuffer(GL_ARRAY_BUFFER, mountainVBO);
-    glBufferData(GL_ARRAY_BUFFER, modelData.vertices.size() * sizeof(glm::vec3), &modelData.vertices[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, modelData.vertices.size() * sizeof(vec3), &modelData.vertices[0], GL_STATIC_DRAW);
 
     // Specify the attribute pointers
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
@@ -194,6 +148,47 @@ int main(void)
      1.0, 0.0, -1.0,  1.0, 0.0,
      1.0, 0.0,  1.0,  1.0, 1.0
     };
+
+
+    // Phong Material Texture Shader
+    unsigned PhongMaterialTextureShader = createShader("base.vert", "phong.frag");
+    glUseProgram(PhongMaterialTextureShader);
+
+    // Directional Light
+    glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uDirLight.Direction"), -3.0, -3.0, 0.0);
+    glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uDirLight.Ka"), 0.1f, 0.1f, 0.05f);
+    glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uDirLight.Kd"), 0.5f, 0.5f, 0.25f);
+    glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uDirLight.Ks"), 1.0f, 1.0f, 1.0f);
+
+    // Point Light
+    glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Ka"), 0.1f, 0.1f, 0.0f);
+    glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Kd"), 0.8f, 0.5f, 0.0f);
+    glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Ks"), 1.0f, 1.0f, 0.0f);
+    glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Kc"), 1.0f);
+    glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Kl"), 0.8f);
+    glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Kq"), 2.0f);
+
+    // Spotlight
+    glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.Position"), 3.0f, 2.0f, -2.0f);
+    glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.Direction"), 0.0f, -1.0f, 1.0f);
+    glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.Ka"), 0.5f, 0.0f, 0.0f);
+    glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.Kd"), 0.5f, 0.0f, 0.0f);
+    glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.Ks"), 0.5f, 0.0f, 0.0f);
+    glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.Kc"), 1.0f);
+    glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.Kl"), 0.092f);
+    glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.Kq"), 0.032f);
+    //glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.InnerCutOff"), cos(glm_rad(5.5f)));
+    //glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.OuterCutOff"), cos(glm_rad(17.5f)));
+
+    // Material
+    glUniform1i(glGetUniformLocation(PhongMaterialTextureShader, "uMaterial.Kd"), 0);
+    glUniform1i(glGetUniformLocation(PhongMaterialTextureShader, "uMaterial.Ks"), 1);
+    glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uMaterial.Shininess"), 128.0f);
+
+    glUseProgram(0);
+
+
+
 
     unsigned int stride = (3 + 2) * sizeof(float);
 
@@ -315,7 +310,7 @@ int main(void)
     float dronLeftCircle[CRES * 3 + 6];
     for (int i = 0; i < dronesLeft; ++i) {
 
-        setCircle(dronLeftCircle, 0.02, 0.7 + 0.04 * i, -0.8);
+        setDronesLeftCircle(dronLeftCircle, 0.02, 0.7 + 0.04 * i, -0.8);
 
         glGenVertexArrays(1, &VAOdronLeft[i]);
         glGenBuffers(1, &VBOdronLeft[i]);
@@ -328,20 +323,33 @@ int main(void)
         glBindVertexArray(0);
     }
 
-    glm::mat4 model = glm::mat4(1.0f); //Matrica transformacija - mat4(1.0f) generise jedinicnu matricu
+
+    // VAO i VBO svetla ------------------------------------------------------------------
+    unsigned int lightVAO, lightVBO;
+    glGenVertexArrays(1, &lightVAO);
+    glGenBuffers(1, &lightVBO);
+    glBindVertexArray(lightVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, lightVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+
+    mat4 model = mat4(1.0f); //Matrica transformacija - mat4(1.0f) generise jedinicnu matricu
     unsigned int modelLocTex = glGetUniformLocation(textureShader, "uM");
     unsigned int modelLocDron = glGetUniformLocation(dronShader, "uM");
     unsigned int modelLocBase = glGetUniformLocation(baseShader, "uM");
 
 
-    glm::mat4 view; //Matrica pogleda (kamere)
-    view = glm::lookAt(glm::vec3(1.0f, 1.0f, -1.2f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    mat4 view; //Matrica pogleda (kamere)
+    view = lookAt(vec3(CAMERA_X_LOC, CAMERA_Y_LOC, CAMERA_Z_LOC), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
     unsigned int viewLocTex = glGetUniformLocation(textureShader, "uV");
     unsigned int viewLocDron = glGetUniformLocation(dronShader, "uV");
     unsigned int viewLocBase = glGetUniformLocation(baseShader, "uV");
 
 
-    glm::mat4 projection = glm::perspective(glm::radians(90.0f), (float)wWidth / (float)wHeight, 0.1f, 100.0f); //Matrica perspektivne projekcije (FOV, Aspect Ratio, prednja ravan, zadnja ravan)
+    mat4 projection = perspective(radians(90.0f), (float)wWidth / (float)wHeight, 0.1f, 100.0f); //Matrica perspektivne projekcije (FOV, Aspect Ratio, prednja ravan, zadnja ravan)
     unsigned int projectionLocTex = glGetUniformLocation(textureShader, "uP");
     unsigned int projectionLocDron = glGetUniformLocation(dronShader, "uP");
     unsigned int projectionLocBase = glGetUniformLocation(baseShader, "uP");
@@ -385,14 +393,14 @@ int main(void)
         glClear(GL_COLOR_BUFFER_BIT);
 
 
-        model = glm::mat4(1.0);
-        glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, glm::value_ptr(model));
+        model = mat4(1.0);
+        glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model));
 
         glUseProgram(textureShader);
         model[0] *= -1;
-        glUniformMatrix4fv(modelLocTex, 1, GL_FALSE, glm::value_ptr(model)); //(Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
-        glUniformMatrix4fv(viewLocTex, 1, GL_FALSE, glm::value_ptr(view));
-        glUniformMatrix4fv(projectionLocTex, 1, GL_FALSE, glm::value_ptr(projection));
+        glUniformMatrix4fv(modelLocTex, 1, GL_FALSE, value_ptr(model)); //(Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
+        glUniformMatrix4fv(viewLocTex, 1, GL_FALSE, value_ptr(view));
+        glUniformMatrix4fv(projectionLocTex, 1, GL_FALSE, value_ptr(projection));
         glBindVertexArray(VAO[0]);
 
         glActiveTexture(GL_TEXTURE0);
@@ -412,19 +420,24 @@ int main(void)
         glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(baseCircle) / (3 * sizeof(float)));
 
 
-        // Crtanje preostalih dronova
+        // Crtanje preostalih dronova    0, 1, -1
         for (int i = 0; i < dronesLeft; ++i) {
             glBindVertexArray(VAOdronLeft[i]);
-            colorLoc = glGetUniformLocation(baseShader, "color");
-            glUniform3f(colorLoc, 0.0, 1.0, 0.0);
+            mat4 model = mat4(1.0f);
+            model = translate(model, vec3( -0.95f, 1.4f, 0.0f));
+            model = rotate(model, 0.8f, vec3(1.0f, 0.0f, 0.0f));
+            model = scale(model, vec3(0.8f, 0.8f, 0.8f));
+            glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model));
+            glUniform3f(colorLoc, 0.0f, 1.0f, 0.0f);
             glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(dronLeftCircle) / (3 * sizeof(float)));
         }
 
+
         // Renderovanje pozadine LED sijalice
         glUseProgram(baseShader);
-        glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, glm::value_ptr(model)); //(Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
-        glUniformMatrix4fv(viewLocBase, 1, GL_FALSE, glm::value_ptr(view));
-        glUniformMatrix4fv(projectionLocBase, 1, GL_FALSE, glm::value_ptr(projection));
+        glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model)); //(Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
+        glUniformMatrix4fv(viewLocBase, 1, GL_FALSE, value_ptr(view));
+        glUniformMatrix4fv(projectionLocBase, 1, GL_FALSE, value_ptr(projection));
         glBindVertexArray(VAOLEDBackground);
         colorLoc = glGetUniformLocation(baseShader, "color");
         glUniform3f(colorLoc, 0.3, 0.2, 0.2);
@@ -443,7 +456,6 @@ int main(void)
 
 
         // Renderovanje centra Novog Sada
-        //glUseProgram(baseShader);
         glBindVertexArray(VAO[2]);
         glUniform3f(colorLoc, 0.0, 0.0, 0.0);
         glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(cityCenterCircle) / (3 * sizeof(float)));
@@ -465,9 +477,9 @@ int main(void)
         {
             moveDrone(window, droneX, droneY, droneSpeed, wWidth, wHeight);
             glUseProgram(dronShader);
-            glUniformMatrix4fv(modelLocDron, 1, GL_FALSE, glm::value_ptr(model)); //(Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
-            glUniformMatrix4fv(viewLocDron, 1, GL_FALSE, glm::value_ptr(view));
-            glUniformMatrix4fv(projectionLocDron, 1, GL_FALSE, glm::value_ptr(projection));
+            glUniformMatrix4fv(modelLocDron, 1, GL_FALSE, value_ptr(model)); //(Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
+            glUniformMatrix4fv(viewLocDron, 1, GL_FALSE, value_ptr(view));
+            glUniformMatrix4fv(projectionLocDron, 1, GL_FALSE, value_ptr(projection));
             glBindVertexArray(VAOBlue);
             GLint translationLoc = glGetUniformLocation(dronShader, "uTranslation");
             glUniform2f(translationLoc, droneX, droneY);
@@ -477,8 +489,8 @@ int main(void)
         }
 
         // Proteklo vreme od pocetka programa
-        auto currentTime = std::chrono::high_resolution_clock::now();
-        float elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count() / 1000.0f;
+        auto currentTime = chrono::high_resolution_clock::now();
+        float elapsedTime = chrono::duration_cast<chrono::milliseconds>(currentTime - startTime).count() / 1000.0f;
 
         for (int i = 0; i < 5; i++) {
             // Izraèunamo vektor od helikoptera do centra
@@ -502,9 +514,9 @@ int main(void)
             float blueIntensity = 1.0 - pulseFactor;
 
             glUseProgram(dronShader);
-            glUniformMatrix4fv(modelLocDron, 1, GL_FALSE, glm::value_ptr(model)); //(Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
-            glUniformMatrix4fv(viewLocDron, 1, GL_FALSE, glm::value_ptr(view));
-            glUniformMatrix4fv(projectionLocDron, 1, GL_FALSE, glm::value_ptr(projection));
+            glUniformMatrix4fv(modelLocDron, 1, GL_FALSE, value_ptr(model)); //(Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
+            glUniformMatrix4fv(viewLocDron, 1, GL_FALSE, value_ptr(view));
+            glUniformMatrix4fv(projectionLocDron, 1, GL_FALSE, value_ptr(projection));
             glBindVertexArray(VAOBlue);
             GLint translationLoc = glGetUniformLocation(dronShader, "uTranslation");
             glUniform2f(translationLoc, helicopterPositions[i].x, helicopterPositions[i].y);
@@ -531,13 +543,16 @@ int main(void)
         // Renderovanje planine
         glUseProgram(baseShader);
         glBindVertexArray(mountainVAO);
-        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
-        model = glm::scale(model, glm::vec3(0.1));
+        model = translate(model, vec3(0.0f, 0.0f, 0.0f));
+        model = scale(model, vec3(0.1));
         colorLoc = glGetUniformLocation(baseShader, "color");
         glUniform3f(colorLoc, 112.0/255.0, 62.0/255.0, 35.0/255.0);
-        glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, glm::value_ptr(model));
+        glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model));
         glDrawArrays(GL_TRIANGLES, 0, modelData.vertices.size());
         glBindVertexArray(0); // Odvezi VAO
+
+        vec3 DirectLightPosition = { 1.0, 0.7, 2.0 };
+
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -552,6 +567,9 @@ int main(void)
     glDeleteVertexArrays(1, &VAOLED);
     glDeleteBuffers(1, &VBOLEDBackground);
     glDeleteVertexArrays(1, &VAOLEDBackground);
+    glDeleteBuffers(1, &mountainVBO);
+    glDeleteVertexArrays(1, &mountainVAO);
+
     glDeleteProgram(textureShader);
     glDeleteProgram(baseShader);
 
@@ -565,7 +583,7 @@ int main(void)
 }
 
 bool checkCollision(float object1X, float object1Y, float object1Radius, float object2X, float object2Y, float object2Radius) {
-    float distance = std::sqrt(std::pow(object2X - object1X, 2) + std::pow(object2Y - object1Y, 2));
+    float distance = sqrt(pow(object2X - object1X, 2) + pow(object2Y - object1Y, 2));
     return distance < (object1Radius + object2Radius);
 }
 
@@ -595,30 +613,30 @@ void generateHelicopterPositions(int number) {
         int strana = rand() % 4;
         if (strana == 0) {
             helicopterPositions[i].x = 1;
-            std::string randomFloat = "0.";
-            randomFloat.append(std::to_string(rand() % 10));
-            randomFloat.append(std::to_string(rand() % 10));
-            helicopterPositions[i].y = std::stof(randomFloat);
+            string randomFloat = "0.";
+            randomFloat.append(to_string(rand() % 10));
+            randomFloat.append(to_string(rand() % 10));
+            helicopterPositions[i].y = stof(randomFloat);
         }
         else if (strana == 1) {
-            std::string randomFloat = "0.";
-            randomFloat.append(std::to_string(rand() % 10));
-            randomFloat.append(std::to_string(rand() % 10));
-            helicopterPositions[i].x = std::stof(randomFloat);
+            string randomFloat = "0.";
+            randomFloat.append(to_string(rand() % 10));
+            randomFloat.append(to_string(rand() % 10));
+            helicopterPositions[i].x = stof(randomFloat);
             helicopterPositions[i].y = 1;
         }
         else if (strana == 2) {
             helicopterPositions[i].x = -1;
-            std::string randomFloat = "0.";
-            randomFloat.append(std::to_string(rand() % 10));
-            randomFloat.append(std::to_string(rand() % 10));
-            helicopterPositions[i].y = std::stof(randomFloat);
+            string randomFloat = "0.";
+            randomFloat.append(to_string(rand() % 10));
+            randomFloat.append(to_string(rand() % 10));
+            helicopterPositions[i].y = stof(randomFloat);
         }
         else {
-            std::string randomFloat = "0.";
-            randomFloat.append(std::to_string(rand() % 10));
-            randomFloat.append(std::to_string(rand() % 10));
-            helicopterPositions[i].x = std::stof(randomFloat);
+            string randomFloat = "0.";
+            randomFloat.append(to_string(rand() % 10));
+            randomFloat.append(to_string(rand() % 10));
+            helicopterPositions[i].x = stof(randomFloat);
             helicopterPositions[i].y = -1;
         }
     }
@@ -666,28 +684,44 @@ void setCircle(float  circle[96], float r, float xPomeraj, float zPomeraj)
     for (int i = 0; i <= CRES; i++) {
         circle[3 + 3 * i] = centerX + xPomeraj + r * cos((3.141592 / 180) * (i * 360 / CRES)); // Xi pomeren za xPomeraj
         circle[3 + 3 * i + 1] = 0.0f;
-        circle[3 + 3 * i + 2] = centerY + zPomeraj + r * sin((3.141592 / 180) * (i * 360 / CRES)); // Zi pomeren za yPomeraj
+        circle[3 + 3 * i + 2] = centerY + zPomeraj + r * sin((3.141592 / 180) * (i * 360 / CRES)); // Zi pomeren za zPomeraj
     }
-    //Crtali smo od "nultog" ugla ka jednom pravcu, sto nam ostavlja prazno mesto od poslednjeg temena kruznice do prvog,
-    //pa da bi ga zatvorili, koristili smo <= umesto <, sto nam dodaje tjeme (cos(0), sin(0))
+}
+
+void setDronesLeftCircle(float  circle[96], float r, float xPomeraj, float yPomeraj)
+{
+    float centerX = 0.0;
+    float centerY = 0.0;
+    float centerZ = 0.0;
+
+    circle[0] = centerX + xPomeraj;
+    circle[1] = centerY + yPomeraj;
+    circle[2] = 0.0f;
+    
+
+    for (int i = 0; i <= CRES; i++) {
+        circle[3 + 3 * i] = centerX + xPomeraj + r * cos((3.141592 / 180) * (i * 360 / CRES)); // Xi pomeren za xPomeraj
+        circle[3 + 3 * i + 1] = centerY + yPomeraj + r * sin((3.141592 / 180) * (i * 360 / CRES)); // Yi pomeren za yPomeraj
+        circle[3 + 3 * i + 2] = 0.0f;
+    }
 }
 
 unsigned int compileShader(GLenum type, const char* source)
 {
-    std::string content = "";
-    std::ifstream file(source);
-    std::stringstream ss;
+    string content = "";
+    ifstream file(source);
+    stringstream ss;
     if (file.is_open())
     {
         ss << file.rdbuf();
         file.close();
-        std::cout << "Uspesno procitan fajl sa putanje \"" << source << "\"!" << std::endl;
+        cout << "Uspesno procitan fajl sa putanje \"" << source << "\"!" << endl;
     }
     else {
         ss << "";
-        std::cout << "Greska pri citanju fajla sa putanje \"" << source << "\"!" << std::endl;
+        cout << "Greska pri citanju fajla sa putanje \"" << source << "\"!" << endl;
     }
-    std::string temp = ss.str();
+    string temp = ss.str();
     const char* sourceCode = temp.c_str();
 
     int shader = glCreateShader(type);
@@ -735,8 +769,8 @@ unsigned int createShader(const char* vsSource, const char* fsSource)
     if (success == GL_FALSE)
     {
         glGetShaderInfoLog(program, 512, NULL, infoLog);
-        std::cout << "Objedinjeni sejder ima gresku! Greska: \n";
-        std::cout << infoLog << std::endl;
+        cout << "Objedinjeni sejder ima gresku! Greska: \n";
+        cout << infoLog << endl;
     }
 
     glDetachShader(program, vertexShader);
@@ -773,8 +807,60 @@ static unsigned loadImageToTexture(const char* filePath) {
     }
     else
     {
-        std::cout << "Textura nije ucitana! Putanja texture: " << filePath << std::endl;
+        cout << "Textura nije ucitana! Putanja texture: " << filePath << endl;
         stbi_image_free(ImageData);
         return 0;
+    }
+}
+ModelData loadModel(const char* filePath) {
+    ModelData modelData;
+
+    Assimp::Importer importer;
+    const aiScene* scene = importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_FlipUVs);
+
+    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
+        cerr << "Error loading model: " << importer.GetErrorString() << endl;
+        return modelData;
+    }
+
+    processNode(scene->mRootNode, scene, modelData);
+
+    return modelData;
+}
+void processMesh(aiMesh* mesh, const aiScene* scene, ModelData& modelData) {
+    for (unsigned int i = 0; i < mesh->mNumVertices; ++i) {
+        vec3 vertex;
+        vertex.x = mesh->mVertices[i].x;
+        vertex.y = mesh->mVertices[i].y;
+        vertex.z = mesh->mVertices[i].z;
+        modelData.vertices.push_back(vertex);
+
+        if (mesh->HasTextureCoords(0)) {
+            vec2 texCoord;
+            texCoord.x = mesh->mTextureCoords[0][i].x;
+            texCoord.y = mesh->mTextureCoords[0][i].y;
+            modelData.textureCoords.push_back(texCoord);
+        }
+
+        if (mesh->HasNormals()) {
+            vec3 normal;
+            normal.x = mesh->mNormals[i].x;
+            normal.y = mesh->mNormals[i].y;
+            normal.z = mesh->mNormals[i].z;
+            modelData.normals.push_back(normal);
+        }
+        else {
+            modelData.normals.push_back(vec3(0.0f, 0.0f, 0.0f));
+        }
+    }
+}
+void processNode(aiNode* node, const aiScene* scene, ModelData& modelData) {
+    for (unsigned int i = 0; i < node->mNumMeshes; ++i) {
+        aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
+        processMesh(mesh, scene, modelData);
+    }
+
+    for (unsigned int i = 0; i < node->mNumChildren; ++i) {
+        processNode(node->mChildren[i], scene, modelData);
     }
 }
