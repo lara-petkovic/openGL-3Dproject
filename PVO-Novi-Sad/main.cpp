@@ -117,24 +117,6 @@ int main(void)
         return 3;
     }
 
-    const char* modelPath = "res/uploads_files_2452740_Obj_rock.obj";
-    ModelData mountain = loadModel(modelPath);
-
-    unsigned int mountainVAO, mountainVBO;
-    glGenVertexArrays(1, &mountainVAO);
-    glGenBuffers(1, &mountainVBO);
-    glBindVertexArray(mountainVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, mountainVBO);
-    glBufferData(GL_ARRAY_BUFFER, mountain.vertices.size() * sizeof(vec3), &mountain.vertices[0], GL_STATIC_DRAW);
-
-    // Specify the attribute pointers
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    // Unbind VAO and VBO
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-
     unsigned int textureShader = createShader("texture.vert", "texture.frag");
     unsigned int baseShader = createShader("base.vert", "base.frag");
     unsigned int dronShader = createShader("dron.vert", "dron.frag");
@@ -149,41 +131,38 @@ int main(void)
      1.0, 0.0,  1.0,  1.0, 1.0
     };
 
+    // Planina ----------------------------------------------------------------------------------------------------------
+    const char* modelPath1 = "res/uploads_files_2452740_Obj_rock.obj";
+    ModelData mountain = loadModel(modelPath1);
 
-    //// Phong Material Texture Shader
-    //unsigned PhongMaterialTextureShader = createShader("base.vert", "phong.frag");
-    //glUseProgram(PhongMaterialTextureShader);
+    unsigned int mountainVAO, mountainVBO;
+    glGenVertexArrays(1, &mountainVAO);
+    glGenBuffers(1, &mountainVBO);
+    glBindVertexArray(mountainVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, mountainVBO);
+    glBufferData(GL_ARRAY_BUFFER, mountain.vertices.size() * sizeof(vec3), &mountain.vertices[0], GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
 
-    //// Directional Light
-    //glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uDirLight.Direction"), -3.0, -3.0, 0.0);
-    //glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uDirLight.Ka"), 0.1f, 0.1f, 0.05f);
-    //glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uDirLight.Kd"), 0.5f, 0.5f, 0.25f);
-    //glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uDirLight.Ks"), 1.0f, 1.0f, 1.0f);
+    // Dron ------------------------------------------------------------------------------------------------------------
+    const char* modelPath2 = "res/drone/uploads_files_4318187_Drone.obj";
+    ModelData drone = loadModel(modelPath2);
 
-    //// Point Light
-    //glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Ka"), 0.1f, 0.1f, 0.0f);
-    //glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Kd"), 0.8f, 0.5f, 0.0f);
-    //glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Ks"), 1.0f, 1.0f, 0.0f);
-    //glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Kc"), 1.0f);
-    //glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Kl"), 0.8f);
-    //glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Kq"), 2.0f);
+    unsigned int droneVAO, droneVBO;
+    glGenVertexArrays(1, &droneVAO);
+    glGenBuffers(1, &droneVBO);
+    glBindVertexArray(droneVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, droneVBO);
+    glBufferData(GL_ARRAY_BUFFER, drone.vertices.size() * sizeof(vec3), &drone.vertices[0], GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
 
-    //// Spotlight
-    //glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.Position"), 3.0f, 2.0f, -2.0f);
-    //glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.Direction"), 0.0f, -1.0f, 1.0f);
-    //glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.Ka"), 0.5f, 0.0f, 0.0f);
-    //glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.Kd"), 0.5f, 0.0f, 0.0f);
-    //glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.Ks"), 0.5f, 0.0f, 0.0f);
-    //glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.Kc"), 1.0f);
-    //glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.Kl"), 0.092f);
-    //glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.Kq"), 0.032f);
-    ////glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.InnerCutOff"), cos(glm_rad(5.5f)));
-    ////glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uSpotlight.OuterCutOff"), cos(glm_rad(17.5f)));
 
-    //// Material
-    //glUniform1i(glGetUniformLocation(PhongMaterialTextureShader, "uMaterial.Kd"), 0);
-    //glUniform1i(glGetUniformLocation(PhongMaterialTextureShader, "uMaterial.Ks"), 1);
-    //glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uMaterial.Shininess"), 128.0f);
+
 
     glUseProgram(0);
 
@@ -476,8 +455,10 @@ int main(void)
         if (wasSpacePressed && dronesLeft > 0)
         {
             moveDrone(window, droneX, droneY, droneSpeed, wWidth, wHeight);
+
+            // Render 2D drone
             glUseProgram(dronShader);
-            glUniformMatrix4fv(modelLocDron, 1, GL_FALSE, value_ptr(model)); //(Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
+            glUniformMatrix4fv(modelLocDron, 1, GL_FALSE, value_ptr(model));
             glUniformMatrix4fv(viewLocDron, 1, GL_FALSE, value_ptr(view));
             glUniformMatrix4fv(projectionLocDron, 1, GL_FALSE, value_ptr(projection));
             glBindVertexArray(VAOBlue);
@@ -486,7 +467,20 @@ int main(void)
             colorLoc = glGetUniformLocation(dronShader, "color");
             glUniform3f(colorLoc, 0.0, 0.0, 1.0);
             glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(blueCircle) / (3 * sizeof(float)));
+
+            // Render 3D drone
+            glBindVertexArray(droneVAO);
+            mat4 model3D = mat4(1.0f);
+            model3D = translate(model3D, vec3(-droneX, -0.2f, droneY));
+            model3D = scale(model3D, vec3(0.15f));
+            glUniform3f(colorLoc, 0.0 / 255.0, 200.0 / 255.0, 35.0 / 255.0);
+            glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model3D));
+            GLint translationLocDrone = glGetUniformLocation(dronShader, "uTranslation");
+            glUniform3f(translationLocDrone, 0.0f, -0.2f, -0.43f);
+            glDrawArrays(GL_TRIANGLES, 0, drone.vertices.size());
+            glBindVertexArray(0);
         }
+
 
         // Proteklo vreme od pocetka programa
         auto currentTime = chrono::high_resolution_clock::now();
@@ -543,41 +537,12 @@ int main(void)
         // Renderovanje planine
         glUseProgram(baseShader);
         glBindVertexArray(mountainVAO);
-        model = translate(model, vec3(0.0f, 0.0f, 0.0f));
         model = scale(model, vec3(0.1));
         colorLoc = glGetUniformLocation(baseShader, "color");
         glUniform3f(colorLoc, 112.0/255.0, 62.0/255.0, 35.0/255.0);
         glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model));
         glDrawArrays(GL_TRIANGLES, 0, mountain.vertices.size());
         glBindVertexArray(0);
-
-        //vec3 PointLightPosition = { 0.0, 0.0, -1.0 };
-        //float constantAttenuation = 1.0;
-        //float linearAttenuation = 0.09;
-        //float quadraticAttenuation = 0.032;
-        //vec3 specular = { 0.3, 0.3, 0.3 };
-
-        //// Assuming your mountain is positioned at (mountainX, mountainY, mountainZ)
-        //vec3 mountainPosition = vec3(mountain.vertices[0], mountain.vertices[1], mountain.vertices[2]);
-
-        //// Set the point light position to be at the mountain's position
-        //PointLightPosition = mountainPosition;
-
-        //// Calculate the direction from the light position to the mountain position
-        //vec3 lightDirection = normalize(mountainPosition - PointLightPosition);
-
-        //// Set other properties in your shader
-        //glUseProgram(PhongMaterialTextureShader);
-        //glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Position"), PointLightPosition.x, PointLightPosition.y, PointLightPosition.z);
-        //glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Ka"), 0.3, 0.3, 0.0);
-        //glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Kd"), 0.3, 0.3, 0.0);
-        //glUniform3f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Ks"), specular[0], specular[1], specular[2]);
-        //glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Kc"), constantAttenuation);
-        //glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Kl"), linearAttenuation);
-        //glUniform1f(glGetUniformLocation(PhongMaterialTextureShader, "uPointLight.Kq"), quadraticAttenuation);
-
-
-
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -594,6 +559,8 @@ int main(void)
     glDeleteVertexArrays(1, &VAOLEDBackground);
     glDeleteBuffers(1, &mountainVBO);
     glDeleteVertexArrays(1, &mountainVAO);
+    glDeleteBuffers(1, &droneVBO);
+    glDeleteVertexArrays(1, &droneVAO);
 
     glDeleteProgram(textureShader);
     glDeleteProgram(baseShader);

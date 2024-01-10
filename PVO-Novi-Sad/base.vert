@@ -2,12 +2,16 @@
 
 layout(location = 0) in vec3 inPos;
 layout(location = 1) in vec3 inCol;
+
+uniform vec3 uTranslation;
+
 out vec3 chCol;
 uniform mat4 uM;
 uniform mat4 uP;
 uniform mat4 uV;
+
 void main()
 {
-	gl_Position = uP * uV * uM * vec4(inPos, 1.0);
+	gl_Position = uP * uV * uM * vec4(inPos + vec3(uTranslation.x, uTranslation.y, uTranslation.z), 1.0);
 	chCol = inCol;
 }
