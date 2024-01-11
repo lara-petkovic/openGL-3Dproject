@@ -65,8 +65,8 @@ struct Location {
 };
 
 float droneX = 0.0f;
-float droneY = -0.45f;
-float droneZ = 0.0f;
+float droneY = 0.0f;
+float droneZ = -0.45f;
 float droneSpeed = 0.0002f;
 bool isSpacePressed = false;
 bool wasSpacePressed = false;
@@ -354,14 +354,14 @@ int main(void)
             isMapHidden = false;
         }
 
-        if ((glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS && !wasXpressed && dronesLeft > 0) || isDronOutsideScreen(droneX, droneY)) {
+        if ((glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS && !wasXpressed && dronesLeft > 0) || isDronOutsideScreen(droneX, droneZ)) {
             wasXpressed = true;
             if (!isSpacePressed) {
                 wasSpacePressed = !wasSpacePressed;
             }
             isSpacePressed = true;
             droneX = 0.0f;
-            droneY = -0.45f;
+            droneZ = -0.45f;
             dronesLeft--;
         }
         else if (glfwGetKey(window, GLFW_KEY_X) == GLFW_RELEASE) {
@@ -447,7 +447,7 @@ int main(void)
             }
             isSpacePressed = true;
             droneX = 0.0f;
-            droneY = -0.45f;
+            droneZ = -0.45f;
         }
         else {
             isSpacePressed = false;
@@ -455,33 +455,33 @@ int main(void)
 
         if (wasSpacePressed && dronesLeft > 0)
         {
-            moveDrone(window, droneX, droneY, droneSpeed, wWidth, wHeight);
+            moveDrone(window, droneX, droneZ, droneSpeed, wWidth, wHeight);
 
-            // Render 2D drone
+            // Renderovanje 2D drona
             glUseProgram(dronShader);
             glUniformMatrix4fv(modelLocDron, 1, GL_FALSE, value_ptr(model));
             glUniformMatrix4fv(viewLocDron, 1, GL_FALSE, value_ptr(view));
             glUniformMatrix4fv(projectionLocDron, 1, GL_FALSE, value_ptr(projection));
             glBindVertexArray(VAOBlue);
             GLint translationLoc = glGetUniformLocation(dronShader, "uTranslation");
-            glUniform2f(translationLoc, droneX, droneY);
+            glUniform2f(translationLoc, droneX, droneZ);
             colorLoc = glGetUniformLocation(dronShader, "color");
             glUniform3f(colorLoc, 0.0, 0.0, 1.0);
             glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(blueCircle) / (3 * sizeof(float)));
 
             if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
             {
-                droneZ += droneSpeed;
+                droneY += droneSpeed;
             }
             if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
             {
-                droneZ -= droneSpeed;
+                droneY -= droneSpeed;
             }
 
-            // Render 3D drone
+            // Renderovanje 3D drona
             glBindVertexArray(droneVAO);
             mat4 model3D = mat4(1.0f);
-            model3D = translate(model3D, vec3(-droneX, droneZ, droneY));   //droneY je ekv droneZ u 2D
+            model3D = translate(model3D, vec3(-droneX, droneY, droneZ));
             model3D = scale(model3D, vec3(0.15f));
             glUniform3f(colorLoc, 0.0 / 255.0, 200.0 / 255.0, 35.0 / 255.0);
             glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model3D));
@@ -528,9 +528,9 @@ int main(void)
             glUniform3f(colorLoc, redIntensity, greenIntensity, blueIntensity);
             glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(blueCircle) / (3 * sizeof(float)));
 
-            if (checkCollision(droneX, droneY, 0.03, helicopterPositions[i].x, helicopterPositions[i].y, 0.03)) {
+            if (checkCollision(droneX, droneZ, 0.03, helicopterPositions[i].x, helicopterPositions[i].y, 0.03)) {
                 droneX = 0.0f; // Resetovanje pozicije drona
-                droneY = -0.45f;
+                droneZ = -0.45f;
                 helicopterPositions[i].x = 1000.0f; // Skloni helikopter sa scene
                 helicopterPositions[i].y = 1000.0f;
                 numberOfCollied++;
@@ -544,15 +544,21 @@ int main(void)
 
         moveHelicoptersTowardsCityCenter(0.42, 0.08, droneSpeed / 3);
 
-        // Renderovanje planine
-        glUseProgram(baseShader);
+        // Renderovanje planine ------------------------------------------------------------------------------
+        glUseProgram(textureShader);
         glBindVertexArray(mountainVAO);
+
+        // Uniforme teksture planine
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, mapTexture);
+        glUniform1i(glGetUniformLocation(baseShader, "uTex"), 0);
+
         model = scale(model, vec3(0.1));
         model = translate(model, vec3(0.0, 0.0, -0.8));
-        colorLoc = glGetUniformLocation(baseShader, "color");
-        glUniform3f(colorLoc, 112.0/255.0, 62.0/255.0, 35.0/255.0);
         glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model));
+
         glDrawArrays(GL_TRIANGLES, 0, mountain.vertices.size());
+        glBindTexture(GL_TEXTURE_2D, 0);
         glBindVertexArray(0);
 
         glfwSwapBuffers(window);

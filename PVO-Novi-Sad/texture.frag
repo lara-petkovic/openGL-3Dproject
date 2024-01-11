@@ -7,5 +7,7 @@ uniform sampler2D uTex;
 
 void main()
 {
-    outCol = texture(uTex, chTex);
+    vec4 texColor = texture(uTex, chTex);
+    outCol = texColor * vec4(1.0);
+    //outCol = vec4(1.0, 0.0, 0.0, 1.0); // Za debug
 }
