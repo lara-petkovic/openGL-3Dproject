@@ -46,8 +46,8 @@ struct ModelData {
 
 unsigned int compileShader(GLenum type, const char* source);
 unsigned int createShader(const char* vsSource, const char* fsSource);
-void setCircle(float  circle[96], float r, float xPomeraj, float zPomeraj);
-void setDronesLeftCircle(float  circle[96], float r, float xPomeraj, float zPomeraj);
+void setXZCircle(float  circle[96], float r, float xPomeraj, float zPomeraj);
+void setXYCircle(float  circle[96], float r, float xPomeraj, float zPomeraj);
 static unsigned loadImageToTexture(const char* filePath);
 void moveDrone(GLFWwindow* window, float& droneX, float& droneY, float droneSpeed, unsigned int wWidth, unsigned int wHeight);
 void generateHelicopterPositions(int number);
@@ -206,7 +206,7 @@ int main(void)
 
     // Opis baze -----------------------------------------------------------------------
     float baseCircle[CRES * 3 + 6];
-    setCircle(baseCircle, 0.07, 0.0, -0.45);
+    setXZCircle(baseCircle, 0.07, 0.0, -0.45);
 
     // VAO i VBO baze
     glBindVertexArray(VAO[1]);
@@ -219,7 +219,7 @@ int main(void)
 
     // Opis centra Novog Sada ----------------------------------------------------------
     float cityCenterCircle[CRES * 3 + 6];
-    setCircle(cityCenterCircle, 0.017, 0.42, 0.08);
+    setXZCircle(cityCenterCircle, 0.017, 0.42, 0.08);
 
     // VAO i VBO centra Novog Sada
     glGenVertexArrays(1, &VAO[2]);
@@ -235,7 +235,7 @@ int main(void)
 
     // Opis drona ----------------------------------------------------------------------
     float blueCircle[CRES * 3 + 6];
-    setCircle(blueCircle, 0.03, 0.0, 0.0);
+    setXZCircle(blueCircle, 0.03, 0.0, 0.0);
 
     // VAO i VBO drona
     unsigned int VAOBlue, VBOBlue;
@@ -251,7 +251,7 @@ int main(void)
 
     // LED sijalica pozadina -> indikator da li je letelica u vazduhu -------------------
     float LEDBackgroundCircle[CRES * 3 + 6];
-    setCircle(LEDBackgroundCircle, 0.045, -0.85, 0.85);
+    setXYCircle(LEDBackgroundCircle, 0.045, -0.70, 0.85);
 
     // VAO i VBO LED-a
     unsigned int VAOLEDBackground, VBOLEDBackground;
@@ -267,7 +267,7 @@ int main(void)
 
     // LED sijalica -> indikator da li je letelica u vazduhu ----------------------------
     float LEDCircle[CRES * 3 + 6];
-    setCircle(LEDCircle, 0.02, -0.85, 0.85);
+    setXYCircle(LEDCircle, 0.02, -0.70, 0.85);
 
     // VAO i VBO LED-a
     unsigned int VAOLED, VBOLED;
@@ -290,7 +290,7 @@ int main(void)
     float dronLeftCircle[CRES * 3 + 6];
     for (int i = 0; i < dronesLeft; ++i) {
 
-        setDronesLeftCircle(dronLeftCircle, 0.02, 0.7 + 0.04 * i, -0.8);
+        setXYCircle(dronLeftCircle, 0.02, 0.7 + 0.04 * i, -0.8);
 
         glGenVertexArrays(1, &VAOdronLeft[i]);
         glGenBuffers(1, &VBOdronLeft[i]);
@@ -333,7 +333,7 @@ int main(void)
     unsigned int projectionLocTex = glGetUniformLocation(textureShader, "uP");
     unsigned int projectionLocDron = glGetUniformLocation(dronShader, "uP");
     unsigned int projectionLocBase = glGetUniformLocation(baseShader, "uP");
-    
+
     bool wasXpressed = false;
 
     while (!glfwWindowShouldClose(window))
@@ -404,7 +404,7 @@ int main(void)
         for (int i = 0; i < dronesLeft; ++i) {
             glBindVertexArray(VAOdronLeft[i]);
             mat4 model = mat4(1.0f);
-            model = translate(model, vec3( -0.95f, 1.4f, 0.0f));
+            model = translate(model, vec3(-0.95f, 1.4f, 0.0f));
             model = rotate(model, 0.8f, vec3(1.0f, 0.0f, 0.0f));
             model = scale(model, vec3(0.8f, 0.8f, 0.8f));
             glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model));
@@ -413,7 +413,7 @@ int main(void)
         }
 
 
-        // Renderovanje pozadine LED sijalice
+        // Renderovanje pozadine LED sijalice -------------------------------------------------------------------
         glUseProgram(baseShader);
         glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model)); //(Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
         glUniformMatrix4fv(viewLocBase, 1, GL_FALSE, value_ptr(view));
@@ -435,7 +435,9 @@ int main(void)
         glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(LEDCircle) / (3 * sizeof(float)));
 
 
-        // Renderovanje centra Novog Sada
+
+
+        // Renderovanje centra Novog Sada ------------------------------------------------------------------------
         glBindVertexArray(VAO[2]);
         glUniform3f(colorLoc, 0.0, 0.0, 0.0);
         glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(cityCenterCircle) / (3 * sizeof(float)));
@@ -620,34 +622,35 @@ void generateHelicopterPositions(int number) {
 
     for (int i = 0; i < number; ++i) {
         int strana = rand() % 4;
-        if (strana == 0) {
+        if (strana == 0) {                                    // Desna stranica
             helicopterPositions[i].x = 1;
             string randomFloat = "0.";
             randomFloat.append(to_string(rand() % 10));
             randomFloat.append(to_string(rand() % 10));
             helicopterPositions[i].y = stof(randomFloat);
         }
-        else if (strana == 1) {
+        else if (strana == 1) {                               // Gornja stranica
             string randomFloat = "0.";
             randomFloat.append(to_string(rand() % 10));
             randomFloat.append(to_string(rand() % 10));
             helicopterPositions[i].x = stof(randomFloat);
             helicopterPositions[i].y = 1;
         }
-        else if (strana == 2) {
+        //else if (strana == 2) {                               // Leva stranica
+        else{
             helicopterPositions[i].x = -1;
             string randomFloat = "0.";
             randomFloat.append(to_string(rand() % 10));
             randomFloat.append(to_string(rand() % 10));
             helicopterPositions[i].y = stof(randomFloat);
         }
-        else {
-            string randomFloat = "0.";
-            randomFloat.append(to_string(rand() % 10));
-            randomFloat.append(to_string(rand() % 10));
-            helicopterPositions[i].x = stof(randomFloat);
-            helicopterPositions[i].y = -1;
-        }
+        //else {
+        //    string randomFloat = "0.";                        // Donja stranica -> Ne moze nam dron doci sa nase planine
+        //    randomFloat.append(to_string(rand() % 10));
+        //    randomFloat.append(to_string(rand() % 10));
+        //    helicopterPositions[i].x = stof(randomFloat);
+        //    helicopterPositions[i].y = -1;
+        //}
     }
 }
 
@@ -680,7 +683,7 @@ void moveDrone(GLFWwindow* window, float& droneX, float& droneY, float droneSpee
     }
 }
 
-void setCircle(float  circle[96], float r, float xPomeraj, float zPomeraj)
+void setXZCircle(float  circle[96], float r, float xPomeraj, float zPomeraj)
 {
     float centerX = 0.0;
     float centerY = 0.0;
@@ -697,7 +700,7 @@ void setCircle(float  circle[96], float r, float xPomeraj, float zPomeraj)
     }
 }
 
-void setDronesLeftCircle(float  circle[96], float r, float xPomeraj, float yPomeraj)
+void setXYCircle(float  circle[96], float r, float xPomeraj, float yPomeraj)
 {
     float centerX = 0.0;
     float centerY = 0.0;
@@ -706,7 +709,7 @@ void setDronesLeftCircle(float  circle[96], float r, float xPomeraj, float yPome
     circle[0] = centerX + xPomeraj;
     circle[1] = centerY + yPomeraj;
     circle[2] = 0.0f;
-    
+
 
     for (int i = 0; i <= CRES; i++) {
         circle[3 + 3 * i] = centerX + xPomeraj + r * cos((3.141592 / 180) * (i * 360 / CRES)); // Xi pomeren za xPomeraj
