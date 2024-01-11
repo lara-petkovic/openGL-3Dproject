@@ -6,6 +6,7 @@
 
 #define CRES 30
 #define DRONES_LEFT 7
+#define PI 3.141592
 #define CAMERA_X_LOC 0.0f
 #define CAMERA_Y_LOC 1.0f
 #define CAMERA_Z_LOC -1.0f
@@ -133,6 +134,8 @@ int main(void)
      1.0, -0.01,  1.0,  1.0, 1.0
     };
 
+    // *********************************************************************** MODELI ***********************************************************************
+    // 
     // Planina ----------------------------------------------------------------------------------------------------------
     const char* modelPath1 = "res/uploads_files_2452740_Obj_rock.obj";
     ModelData mountain = loadModel(modelPath1);
@@ -163,7 +166,22 @@ int main(void)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
+    // Oblak1 ------------------------------------------------------------------------------------------------------------
+    //const char* modelPath3 = "res/clouds/CloudLarge.obj";
+    //ModelData cloud1 = loadModel(modelPath3);
 
+    //unsigned int cloud1VAO, cloud1VBO;
+    //glGenVertexArrays(1, &cloud1VAO);
+    //glGenBuffers(1, &cloud1VBO);
+    //glBindVertexArray(cloud1VAO);
+    //glBindBuffer(GL_ARRAY_BUFFER, cloud1VBO);
+    //glBufferData(GL_ARRAY_BUFFER, cloud1.vertices.size() * sizeof(vec3), &cloud1.vertices[0], GL_STATIC_DRAW);
+    //glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    //glEnableVertexAttribArray(0);
+    //glBindBuffer(GL_ARRAY_BUFFER, 0);
+    //glBindVertexArray(0);
+
+    // ******************************************************************************************************************************************************
 
     glUseProgram(0);
 
@@ -193,6 +211,8 @@ int main(void)
 
     // Renderovanje teksture -----------------------------------------------------------
     unsigned mapTexture = loadImageToTexture("res/novi-sad.png");
+    //unsigned cloudTexture = loadImageToTexture("res/cloud.jpg");
+
     glBindTexture(GL_TEXTURE_2D, mapTexture);
     glGenerateMipmap(GL_TEXTURE_2D);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -404,7 +424,9 @@ int main(void)
         glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(baseCircle) / (3 * sizeof(float)));
 
 
-        // Crtanje preostalih dronova    0, 1, -1
+        // Renderovanje preostalih dronova    0, 1, -1 ----------------------------------------------------------
+        glCullFace(GL_FRONT);
+
         for (int i = 0; i < dronesLeft; ++i) {
             glBindVertexArray(VAOdronLeft[i]);
             mat4 model = mat4(1.0f);
@@ -415,7 +437,7 @@ int main(void)
             glUniform3f(colorLoc, 0.0f, 1.0f, 0.0f);
             glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(dronLeftCircle) / (3 * sizeof(float)));
         }
-
+        glCullFace(GL_BACK);
 
         // Renderovanje pozadine LED sijalice -------------------------------------------------------------------
         glUseProgram(baseShader);
@@ -579,11 +601,31 @@ int main(void)
         glBindTexture(GL_TEXTURE_2D, 0);
         glBindVertexArray(0);
 
+        //// Renderovanje oblaka1 ------------------------------------------------------------------------------
+        //glUseProgram(textureShader);
+        //glBindVertexArray(cloud1VAO);
+
+        //// Uniforme oblaka
+        //glActiveTexture(GL_TEXTURE0);
+        //glBindTexture(GL_TEXTURE_2D, mapTexture);
+        //glUniform1i(glGetUniformLocation(baseShader, "uTex"), 0);
+
+        //model = scale(model, vec3(0.05));
+        //model = translate(model, vec3(0.0, 6.0, 0.0));
+        //glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model));
+
+        //glDrawArrays(GL_TRIANGLES, 0, cloud1.vertices.size());
+        //glBindTexture(GL_TEXTURE_2D, 0);
+        //glBindVertexArray(0);
+
+
+
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
     glDeleteTextures(1, &mapTexture);
+    //glDeleteTextures(2, &cloudTexture);
     glDeleteBuffers(3, VBO);
     glDeleteVertexArrays(3, VAO);
     glDeleteBuffers(1, &VBOBlue);
@@ -596,6 +638,8 @@ int main(void)
     glDeleteVertexArrays(1, &mountainVAO);
     glDeleteBuffers(1, &droneVBO);
     glDeleteVertexArrays(1, &droneVAO);
+    //glDeleteBuffers(1, &cloud1VBO);
+    //glDeleteVertexArrays(1, &cloud1VAO);
 
     glDeleteProgram(textureShader);
     glDeleteProgram(baseShader);
@@ -710,9 +754,10 @@ void setXZCircle(float  circle[96], float r, float xPomeraj, float zPomeraj)
     circle[2] = centerZ + zPomeraj;
 
     for (int i = 0; i <= CRES; i++) {
-        circle[3 + 3 * i] = centerX + xPomeraj + r * cos((3.141592 / 180) * (i * 360 / CRES)); // Xi pomeren za xPomeraj
+        float angle = (PI / 180) * (i * 360 / CRES);
+        circle[3 + 3 * i] = centerX + xPomeraj + r * cos(angle); // Xi pomeren za xPomeraj
         circle[3 + 3 * i + 1] = 0.0f;
-        circle[3 + 3 * i + 2] = centerZ + zPomeraj + r * sin((3.141592 / 180) * (i * 360 / CRES)); // Zi pomeren za zPomeraj
+        circle[3 + 3 * i + 2] = centerZ + zPomeraj + r * sin(angle); // Zi pomeren za zPomeraj
     }
 }
 
@@ -727,9 +772,10 @@ void setXYCircle(float  circle[96], float r, float xPomeraj, float yPomeraj)
     circle[2] = 0.0f;
 
 
-    for (int i = 0; i <= CRES; i++) {
-        circle[3 + 3 * i] = centerX + xPomeraj + r * cos((3.141592 / 180) * (i * 360 / CRES)); // Xi pomeren za xPomeraj
-        circle[3 + 3 * i + 1] = centerY + yPomeraj + r * sin((3.141592 / 180) * (i * 360 / CRES)); // Yi pomeren za yPomeraj
+    for (int i = CRES; i >= 0; i--) {
+        float angle = (PI / 180) * (i * 360 / CRES);
+        circle[3 + 3 * i] = centerX + xPomeraj + r * cos(angle); // Xi pomeren za xPomeraj
+        circle[3 + 3 * i + 1] = centerY + yPomeraj + r * sin(angle); // Yi pomeren za yPomeraj
         circle[3 + 3 * i + 2] = 0.0f;
     }
 }
