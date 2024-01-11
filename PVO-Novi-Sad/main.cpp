@@ -53,7 +53,7 @@ void moveDrone(GLFWwindow* window, float& droneX, float& droneY, float droneSpee
 void generateHelicopterPositions(int number);
 void moveHelicoptersTowardsCityCenter(float cityCenterX, float cityCenterY, float speed);
 bool checkCollision(float object1X, float object1Y, float object1Radius, float object2X, float object2Y, float object2Radius);
-bool isDronOutsideScreen(float droneX, float droneY);
+bool isDroneOutsideScreen(float droneX, float droneY);
 ModelData loadModel(const char* filePath);
 void processMesh(aiMesh* mesh, const aiScene* scene, ModelData& modelData);
 void processNode(aiNode* node, const aiScene* scene, ModelData& modelData);
@@ -65,7 +65,7 @@ struct Location {
 };
 
 float droneX = 0.0f;
-float droneY = 0.0f;
+float droneY = 0.2f;
 float droneZ = -0.45f;
 float droneSpeed = 0.0002f;
 bool isSpacePressed = false;
@@ -124,12 +124,13 @@ int main(void)
     int colorLoc = glGetUniformLocation(textureShader, "color");
 
     float vertices[] = {
-    -1.0, 0.0, -1.0,  0.0, 0.0,
-     1.0, 0.0, -1.0,  1.0, 0.0,
-    -1.0, 0.0,  1.0,  0.0, 1.0,
+   // X     Y      Z     S    T  
+    -1.0, -0.01, -1.0,  0.0, 0.0,    // Stavila sam Z osu na -0.01 radi testiranja dubine -> mapa je malo niza od svih ostalih objekata
+     1.0, -0.01, -1.0,  1.0, 0.0,
+    -1.0, -0.01,  1.0,  0.0, 1.0,
 
-     1.0, 0.0, -1.0,  1.0, 0.0,
-     1.0, 0.0,  1.0,  1.0, 1.0
+     1.0, -0.01, -1.0,  1.0, 0.0,
+     1.0, -0.01,  1.0,  1.0, 1.0
     };
 
     // Planina ----------------------------------------------------------------------------------------------------------
@@ -164,9 +165,7 @@ int main(void)
 
 
 
-
     glUseProgram(0);
-
 
 
 
@@ -336,8 +335,12 @@ int main(void)
 
     bool wasXpressed = false;
 
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    
     while (!glfwWindowShouldClose(window))
     {
+        glEnable(GL_DEPTH_TEST);
 
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         {
@@ -354,13 +357,14 @@ int main(void)
             isMapHidden = false;
         }
 
-        if ((glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS && !wasXpressed && dronesLeft > 0) || isDronOutsideScreen(droneX, droneZ)) {
+        if ((glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS && !wasXpressed && dronesLeft > 0) || isDroneOutsideScreen(droneX, droneZ) || droneY < 0.0f) {
             wasXpressed = true;
             if (!isSpacePressed) {
                 wasSpacePressed = !wasSpacePressed;
             }
             isSpacePressed = true;
             droneX = 0.0f;
+            droneY = 0.0f;
             droneZ = -0.45f;
             dronesLeft--;
         }
@@ -370,7 +374,7 @@ int main(void)
 
 
         glClearColor(0.5, 0.5, 0.5, 1.0);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
         model = mat4(1.0);
@@ -415,10 +419,12 @@ int main(void)
 
         // Renderovanje pozadine LED sijalice -------------------------------------------------------------------
         glUseProgram(baseShader);
+        glBindVertexArray(VAOLEDBackground);
+
         glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model)); //(Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
         glUniformMatrix4fv(viewLocBase, 1, GL_FALSE, value_ptr(view));
         glUniformMatrix4fv(projectionLocBase, 1, GL_FALSE, value_ptr(projection));
-        glBindVertexArray(VAOLEDBackground);
+        
         colorLoc = glGetUniformLocation(baseShader, "color");
         glUniform3f(colorLoc, 0.3, 0.2, 0.2);
         glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(LEDBackgroundCircle) / (3 * sizeof(float)));
@@ -427,13 +433,12 @@ int main(void)
         glBindVertexArray(VAOLED);
         colorLoc = glGetUniformLocation(baseShader, "color");
         if (coptersOnScreen) {
-            glUniform3f(colorLoc, 1.0, 0.0, 0.0); // Boja LED sijalice kada ima helikoptera
+            glUniform3f(colorLoc, 1.0, 0.0, 0.0); // Crvena boja LED sijalice kada ima helikoptera
         }
         else {
-            glUniform3f(colorLoc, 0.0, 1.0, 0.0); // Crna boja LED sijalice kada nema helikoptera
+            glUniform3f(colorLoc, 0.0, 1.0, 0.0); // Zelena boja LED sijalice kada nema helikoptera
         }
         glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(LEDCircle) / (3 * sizeof(float)));
-
 
 
 
@@ -478,6 +483,9 @@ int main(void)
             if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
             {
                 droneY -= droneSpeed;
+                if (droneY == 0.0f) {
+
+                }
             }
 
             // Renderovanje 3D drona
@@ -498,26 +506,32 @@ int main(void)
         auto currentTime = chrono::high_resolution_clock::now();
         float elapsedTime = chrono::duration_cast<chrono::milliseconds>(currentTime - startTime).count() / 1000.0f;
 
+
+        // Renderovanje helikoptera -------------------------------------------------------------------------
         for (int i = 0; i < 5; i++) {
-            // Izraèunamo vektor od helikoptera do centra
-            float dirX = 0.42 - helicopterPositions[i].x;
-            float dirY = 0.08 - helicopterPositions[i].y;
+            //// Izraèunamo vektor od helikoptera do centra
+            //float dirX = 0.42 - helicopterPositions[i].x;
+            //float dirY = 0.08 - helicopterPositions[i].y;
 
-            // Izraèunamo razdaljinu od koptera do centra - Pitagora
-            float distance = sqrt(dirX * dirX + dirY * dirY);
+            //// Izraèunamo razdaljinu od koptera do centra - Pitagora
+            //float distance = sqrt(dirX * dirX + dirY * dirY);
 
-            // Normalizujemo vektor
-            dirX /= distance;
-            dirY /= distance;
+            //// Normalizujemo vektor
+            //dirX /= distance;
+            //dirY /= distance;
 
-            // Prilagodimo brzinu pulsiranja na osnovu udaljenosti od centra - osnovna brzina je 5.0f
-            float pulseSpeed = 5.0f + 10.0f * (1.0f - distance);
+            //// Prilagodimo brzinu pulsiranja na osnovu udaljenosti od centra - osnovna brzina je 5.0f
+            //float pulseSpeed = 5.0f + 10.0f * (1.0f - distance);
 
-            // Izraèunamo faktor pulsiranja na osnovu vremena i udaljenosti
-            float pulseFactor = 0.5f + 0.5f * sin(elapsedTime * pulseSpeed);
-            float redIntensity = 1.0;
-            float greenIntensity = 1.0 - pulseFactor;
-            float blueIntensity = 1.0 - pulseFactor;
+            //// Izraèunamo faktor pulsiranja na osnovu vremena i udaljenosti
+            //float pulseFactor = 0.5f + 0.5f * sin(elapsedTime * pulseSpeed);
+            //float redIntensity = 1.0;
+            //float greenIntensity = 1.0 - pulseFactor;
+            //float blueIntensity = 1.0 - pulseFactor;
+
+            float redIntensity = 0.28;
+            float greenIntensity = 0.3;
+            float blueIntensity = 0.2001;
 
             glUseProgram(dronShader);
             glUniformMatrix4fv(modelLocDron, 1, GL_FALSE, value_ptr(model)); //(Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
@@ -529,9 +543,11 @@ int main(void)
             colorLoc = glGetUniformLocation(dronShader, "color");
             glUniform3f(colorLoc, redIntensity, greenIntensity, blueIntensity);
             glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(blueCircle) / (3 * sizeof(float)));
+            glBindVertexArray(0);
 
             if (checkCollision(droneX, droneZ, 0.03, helicopterPositions[i].x, helicopterPositions[i].y, 0.03)) {
                 droneX = 0.0f; // Resetovanje pozicije drona
+                droneY = 0.0f;
                 droneZ = -0.45f;
                 helicopterPositions[i].x = 1000.0f; // Skloni helikopter sa scene
                 helicopterPositions[i].y = 1000.0f;
@@ -654,7 +670,7 @@ void generateHelicopterPositions(int number) {
     }
 }
 
-bool isDronOutsideScreen(float droneX, float droneY)
+bool isDroneOutsideScreen(float droneX, float droneY)
 {
     return (droneX < -1.0f || droneX > 1.0f || droneY < -1.0f || droneY > 1.0f);
 }
@@ -696,7 +712,7 @@ void setXZCircle(float  circle[96], float r, float xPomeraj, float zPomeraj)
     for (int i = 0; i <= CRES; i++) {
         circle[3 + 3 * i] = centerX + xPomeraj + r * cos((3.141592 / 180) * (i * 360 / CRES)); // Xi pomeren za xPomeraj
         circle[3 + 3 * i + 1] = 0.0f;
-        circle[3 + 3 * i + 2] = centerY + zPomeraj + r * sin((3.141592 / 180) * (i * 360 / CRES)); // Zi pomeren za zPomeraj
+        circle[3 + 3 * i + 2] = centerZ + zPomeraj + r * sin((3.141592 / 180) * (i * 360 / CRES)); // Zi pomeren za zPomeraj
     }
 }
 
