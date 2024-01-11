@@ -66,6 +66,7 @@ struct Location {
 
 float droneX = 0.0f;
 float droneY = -0.45f;
+float droneZ = 0.0f;
 float droneSpeed = 0.0002f;
 bool isSpacePressed = false;
 bool wasSpacePressed = false;
@@ -468,15 +469,24 @@ int main(void)
             glUniform3f(colorLoc, 0.0, 0.0, 1.0);
             glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(blueCircle) / (3 * sizeof(float)));
 
+            if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+            {
+                droneZ += droneSpeed;
+            }
+            if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+            {
+                droneZ -= droneSpeed;
+            }
+
             // Render 3D drone
             glBindVertexArray(droneVAO);
             mat4 model3D = mat4(1.0f);
-            model3D = translate(model3D, vec3(-droneX, -0.2f, droneY));
+            model3D = translate(model3D, vec3(-droneX, droneZ, droneY));   //droneY je ekv droneZ u 2D
             model3D = scale(model3D, vec3(0.15f));
             glUniform3f(colorLoc, 0.0 / 255.0, 200.0 / 255.0, 35.0 / 255.0);
             glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model3D));
             GLint translationLocDrone = glGetUniformLocation(dronShader, "uTranslation");
-            glUniform3f(translationLocDrone, 0.0f, -0.2f, -0.43f);
+            glUniform3f(translationLocDrone, 0.0f, -0.4f, -0.43f);
             glDrawArrays(GL_TRIANGLES, 0, drone.vertices.size());
             glBindVertexArray(0);
         }
@@ -538,6 +548,7 @@ int main(void)
         glUseProgram(baseShader);
         glBindVertexArray(mountainVAO);
         model = scale(model, vec3(0.1));
+        model = translate(model, vec3(0.0, 0.0, -0.8));
         colorLoc = glGetUniformLocation(baseShader, "color");
         glUniform3f(colorLoc, 112.0/255.0, 62.0/255.0, 35.0/255.0);
         glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model));
