@@ -137,7 +137,7 @@ int main(void)
     // *********************************************************************** MODELI ***********************************************************************
     // 
     // Planina ----------------------------------------------------------------------------------------------------------
-    const char* modelPath1 = "res/uploads_files_2452740_Obj_rock.obj";
+    const char* modelPath1 = "res/mountain/Mountain.obj";
     ModelData mountain = loadModel(modelPath1);
 
     unsigned int mountainVAO, mountainVBO;
@@ -152,7 +152,7 @@ int main(void)
     glBindVertexArray(0);
 
     // Dron ------------------------------------------------------------------------------------------------------------
-    const char* modelPath2 = "res/drone/uploads_files_4318187_Drone.obj";
+    const char* modelPath2 = "res/drone/Drone.obj";
     ModelData drone = loadModel(modelPath2);
 
     unsigned int droneVAO, droneVBO;
@@ -167,7 +167,7 @@ int main(void)
     glBindVertexArray(0);
 
     // Oblak1 ------------------------------------------------------------------------------------------------------------
-    const char* modelPath3 = "res/clouds/CloudLarge.obj";
+    const char* modelPath3 = "res/clouds/Cloud.obj";
     ModelData cloud1 = loadModel(modelPath3);
 
     unsigned int cloud1VAO, cloud1VBO;
@@ -602,23 +602,34 @@ int main(void)
         glBindTexture(GL_TEXTURE_2D, 0);
         glBindVertexArray(0);
 
-        //// Renderovanje oblaka1 ------------------------------------------------------------------------------
-        //glUseProgram(textureShader);
-        //glBindVertexArray(cloud1VAO);
+        // Renderovanje seta oblaka ------------------------------------------------------------------------------
+        glUseProgram(baseShader);
+        glBindVertexArray(cloud1VAO);
 
-        //// Uniforme oblaka
-        //glActiveTexture(GL_TEXTURE0);
-        //glBindTexture(GL_TEXTURE_2D, mapTexture);
-        //glUniform1i(glGetUniformLocation(baseShader, "uTex"), 0);
+        // Renderovanje prednjeg oblaka seta
+        colorLoc = glGetUniformLocation(baseShader, "color");
+        glUniform3f(colorLoc, 0.7, 0.7, 0.7);
 
-        //model = scale(model, vec3(0.05));
-        //model = translate(model, vec3(0.0, 6.0, 0.0));
-        //glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model));
+        mat4 model1 = mat4(1.0f);
+        model1 = scale(model1, vec3(0.1));
+        model1 = translate(model1, vec3(0.0, 9.0, 7.0));
+        glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model1));
 
-        //glDrawArrays(GL_TRIANGLES, 0, cloud1.vertices.size());
-        //glBindTexture(GL_TEXTURE_2D, 0);
-        //glBindVertexArray(0);
+        glDisable(GL_CULL_FACE);
+        glDrawArrays(GL_TRIANGLES, 0, cloud1.vertices.size());
 
+        // Renderovanje zadnjeg oblaka seta
+        colorLoc = glGetUniformLocation(baseShader, "color");
+        glUniform3f(colorLoc, 0.7, 0.7, 0.7);
+
+        mat4 model2 = mat4(1.0f);
+        model2 = scale(model2, vec3(0.1));
+        model2 = translate(model2, vec3(0.0, 9.8, 9.0));
+        glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model2));
+
+        glDrawArrays(GL_TRIANGLES, 0, cloud1.vertices.size());
+        glBindVertexArray(0);
+        glEnable(GL_CULL_FACE);
 
 
         glfwSwapBuffers(window);
