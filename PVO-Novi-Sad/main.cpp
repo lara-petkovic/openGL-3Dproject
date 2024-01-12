@@ -7,9 +7,9 @@
 #define CRES 30
 #define DRONES_LEFT 7
 #define PI 3.141592
-#define CAMERA_X_LOC 0.0f
-#define CAMERA_Y_LOC 0.6f
-#define CAMERA_Z_LOC -1.0f
+#define CAMERA_X_LOC 0.0f   //0.0f
+#define CAMERA_Y_LOC 0.6f   //0.6f
+#define CAMERA_Z_LOC -1.0f  //-1.0f
 
 #include "stb_image.h"
 
@@ -125,13 +125,13 @@ int main(void)
     int colorLoc = glGetUniformLocation(textureShader, "color");
 
     float vertices[] = {
-   // X     Y      Z     S    T  
-    -1.0, -0.01, -1.0,  0.0, 0.0,    // Stavila sam Z osu na -0.01 radi testiranja dubine -> mapa je malo niza od svih ostalih objekata
-     1.0, -0.01, -1.0,  1.0, 0.0,
-    -1.0, -0.01,  1.0,  0.0, 1.0,
+   // X     Y      Z       S    T  
+    -1.0, -0.01, -1.0,    0.0, 0.0,    // Stavila sam Z osu na -0.01 radi testiranja dubine -> mapa je malo niza od svih ostalih objekata
+     1.0, -0.01, -1.0,    1.0, 0.0,
+    -1.0, -0.01,  1.0,    0.0, 1.0,
 
-     1.0, -0.01, -1.0,  1.0, 0.0,
-     1.0, -0.01,  1.0,  1.0, 1.0
+     1.0, -0.01, -1.0,    1.0, 0.0,
+     1.0, -0.01,  1.0,    1.0, 1.0
     };
 
     // *********************************************************************** MODELI ***********************************************************************
@@ -357,7 +357,7 @@ int main(void)
 
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
-    
+
     while (!glfwWindowShouldClose(window))
     {
         glEnable(GL_DEPTH_TEST);
@@ -603,13 +603,16 @@ int main(void)
         glBindVertexArray(0);
 
         // Renderovanje seta oblaka ------------------------------------------------------------------------------
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glUseProgram(baseShader);
         glBindVertexArray(cloud1VAO);
 
         // Renderovanje prednjeg oblaka seta
         colorLoc = glGetUniformLocation(baseShader, "color");
         glUniform3f(colorLoc, 0.7, 0.7, 0.7);
-
+        GLuint alphaLoc = glGetUniformLocation(baseShader, "uAlpha");
+        glUniform1f(alphaLoc, 0.5);
         mat4 model1 = mat4(1.0f);
         model1 = scale(model1, vec3(0.1));
         model1 = translate(model1, vec3(0.0, 9.0, 7.0));
@@ -622,6 +625,7 @@ int main(void)
         colorLoc = glGetUniformLocation(baseShader, "color");
         glUniform3f(colorLoc, 0.7, 0.7, 0.7);
 
+        glUniform1f(alphaLoc, 0.5);
         mat4 model2 = mat4(1.0f);
         model2 = scale(model2, vec3(0.1));
         model2 = translate(model2, vec3(0.0, 9.8, 9.0));
@@ -629,6 +633,9 @@ int main(void)
 
         glDrawArrays(GL_TRIANGLES, 0, cloud1.vertices.size());
         glBindVertexArray(0);
+        glDisable(GL_BLEND);
+        glUniform1f(alphaLoc, 0.0);
+
         glEnable(GL_CULL_FACE);
 
 

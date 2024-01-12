@@ -2,9 +2,11 @@
 
 in vec3 chCol;
 out vec4 outCol;
+
 uniform vec3 color;
+uniform float uAlpha;
 
 void main()
 {
-	outCol = vec4(chCol.rgb + color, 1.0);
+	outCol = vec4(chCol.rgb + color, 1.0 - uAlpha);
 }
