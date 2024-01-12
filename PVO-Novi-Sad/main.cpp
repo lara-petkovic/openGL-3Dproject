@@ -8,7 +8,7 @@
 #define DRONES_LEFT 7
 #define PI 3.141592
 #define CAMERA_X_LOC 0.0f
-#define CAMERA_Y_LOC 1.0f
+#define CAMERA_Y_LOC 0.6f
 #define CAMERA_Z_LOC -1.0f
 
 #include "stb_image.h"
@@ -66,7 +66,7 @@ struct Location {
 };
 
 float droneX = 0.0f;
-float droneY = 0.2f;
+float droneY = 0.0f;
 float droneZ = -0.45f;
 float droneSpeed = 0.0002f;
 bool isSpacePressed = false;
@@ -167,19 +167,19 @@ int main(void)
     glBindVertexArray(0);
 
     // Oblak1 ------------------------------------------------------------------------------------------------------------
-    //const char* modelPath3 = "res/clouds/CloudLarge.obj";
-    //ModelData cloud1 = loadModel(modelPath3);
+    const char* modelPath3 = "res/clouds/CloudLarge.obj";
+    ModelData cloud1 = loadModel(modelPath3);
 
-    //unsigned int cloud1VAO, cloud1VBO;
-    //glGenVertexArrays(1, &cloud1VAO);
-    //glGenBuffers(1, &cloud1VBO);
-    //glBindVertexArray(cloud1VAO);
-    //glBindBuffer(GL_ARRAY_BUFFER, cloud1VBO);
-    //glBufferData(GL_ARRAY_BUFFER, cloud1.vertices.size() * sizeof(vec3), &cloud1.vertices[0], GL_STATIC_DRAW);
-    //glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    //glEnableVertexAttribArray(0);
-    //glBindBuffer(GL_ARRAY_BUFFER, 0);
-    //glBindVertexArray(0);
+    unsigned int cloud1VAO, cloud1VBO;
+    glGenVertexArrays(1, &cloud1VAO);
+    glGenBuffers(1, &cloud1VBO);
+    glBindVertexArray(cloud1VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, cloud1VBO);
+    glBufferData(GL_ARRAY_BUFFER, cloud1.vertices.size() * sizeof(vec3), &cloud1.vertices[0], GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
 
     // ******************************************************************************************************************************************************
 
@@ -211,7 +211,7 @@ int main(void)
 
     // Renderovanje teksture -----------------------------------------------------------
     unsigned mapTexture = loadImageToTexture("res/novi-sad.png");
-    //unsigned cloudTexture = loadImageToTexture("res/cloud.jpg");
+    unsigned cloudTexture = loadImageToTexture("res/novi-sad.png");
 
     glBindTexture(GL_TEXTURE_2D, mapTexture);
     glGenerateMipmap(GL_TEXTURE_2D);
@@ -393,7 +393,7 @@ int main(void)
         }
 
 
-        glClearColor(0.5, 0.5, 0.5, 1.0);
+        glClearColor(0.1, 0.1, 0.10023082, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
@@ -430,7 +430,7 @@ int main(void)
         for (int i = 0; i < dronesLeft; ++i) {
             glBindVertexArray(VAOdronLeft[i]);
             mat4 model = mat4(1.0f);
-            model = translate(model, vec3(-0.95f, 1.4f, 0.0f));
+            model = translate(model, vec3(-0.95f, 1.15f, 0.0f));
             model = rotate(model, 0.8f, vec3(1.0f, 0.0f, 0.0f));
             model = scale(model, vec3(0.8f, 0.8f, 0.8f));
             glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model));
@@ -443,7 +443,7 @@ int main(void)
         glUseProgram(baseShader);
         glBindVertexArray(VAOLEDBackground);
 
-        glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model)); //(Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
+        glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model)); // (Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
         glUniformMatrix4fv(viewLocBase, 1, GL_FALSE, value_ptr(view));
         glUniformMatrix4fv(projectionLocBase, 1, GL_FALSE, value_ptr(projection));
         
@@ -476,6 +476,7 @@ int main(void)
             }
             isSpacePressed = true;
             droneX = 0.0f;
+            droneY = 0.0f;
             droneZ = -0.45f;
         }
         else {
@@ -591,10 +592,10 @@ int main(void)
         // Uniforme teksture planine
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, mapTexture);
-        glUniform1i(glGetUniformLocation(baseShader, "uTex"), 0);
+        glUniform1i(glGetUniformLocation(textureShader, "uTex"), 0);
 
-        model = scale(model, vec3(0.1));
-        model = translate(model, vec3(0.0, 0.0, -0.8));
+        model = scale(model, vec3(0.1, 0.1, 0.001));
+        model = translate(model, vec3(0.0, 0.0, -0.3));
         glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model));
 
         glDrawArrays(GL_TRIANGLES, 0, mountain.vertices.size());
@@ -625,7 +626,7 @@ int main(void)
     }
 
     glDeleteTextures(1, &mapTexture);
-    //glDeleteTextures(2, &cloudTexture);
+    glDeleteTextures(2, &cloudTexture);
     glDeleteBuffers(3, VBO);
     glDeleteVertexArrays(3, VAO);
     glDeleteBuffers(1, &VBOBlue);
@@ -638,8 +639,8 @@ int main(void)
     glDeleteVertexArrays(1, &mountainVAO);
     glDeleteBuffers(1, &droneVBO);
     glDeleteVertexArrays(1, &droneVAO);
-    //glDeleteBuffers(1, &cloud1VBO);
-    //glDeleteVertexArrays(1, &cloud1VAO);
+    glDeleteBuffers(1, &cloud1VBO);
+    glDeleteVertexArrays(1, &cloud1VAO);
 
     glDeleteProgram(textureShader);
     glDeleteProgram(baseShader);
