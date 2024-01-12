@@ -211,7 +211,7 @@ int main(void)
 
     // Renderovanje teksture -----------------------------------------------------------
     unsigned mapTexture = loadImageToTexture("res/novi-sad.png");
-    unsigned cloudTexture = loadImageToTexture("res/novi-sad.png");
+    unsigned mountainTexture = loadImageToTexture("res/novi-sad.png");
 
     glBindTexture(GL_TEXTURE_2D, mapTexture);
     glGenerateMipmap(GL_TEXTURE_2D);
@@ -602,7 +602,7 @@ int main(void)
         glBindTexture(GL_TEXTURE_2D, 0);
         glBindVertexArray(0);
 
-        // Renderovanje seta oblaka ------------------------------------------------------------------------------
+        // Renderovanje 1. seta oblaka ------------------------------------------------------------------------------
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glUseProgram(baseShader);
@@ -622,20 +622,31 @@ int main(void)
         glDrawArrays(GL_TRIANGLES, 0, cloud1.vertices.size());
 
         // Renderovanje zadnjeg oblaka seta
-        colorLoc = glGetUniformLocation(baseShader, "color");
-        glUniform3f(colorLoc, 0.7, 0.7, 0.7);
-
         glUniform1f(alphaLoc, 0.5);
         mat4 model2 = mat4(1.0f);
         model2 = scale(model2, vec3(0.1));
         model2 = translate(model2, vec3(0.0, 9.8, 9.0));
         glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model2));
-
         glDrawArrays(GL_TRIANGLES, 0, cloud1.vertices.size());
+
+        // Renderovanje 2. seta oblaka ---- ---- ---- ---- ---- ---- .-.. .- .-. .- ---- ---- ---- ---- ---- ---- ----
+        glUniform1f(alphaLoc, 0.5);
+        mat4 model3 = mat4(1.0f);
+        model3 = scale(model3, vec3(0.1));
+        model3 = translate(model3, vec3(11.0, 7.8, 15.0));
+        glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model3));
+        glDrawArrays(GL_TRIANGLES, 0, cloud1.vertices.size());
+
+        glUniform1f(alphaLoc, 0.5);
+        mat4 model4 = mat4(1.0f);
+        model4 = scale(model4, vec3(0.1));
+        model4 = translate(model4, vec3(10.0, 7.8, 16.0));
+        glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model4));
+        glDrawArrays(GL_TRIANGLES, 0, cloud1.vertices.size());
+
         glBindVertexArray(0);
         glDisable(GL_BLEND);
         glUniform1f(alphaLoc, 0.0);
-
         glEnable(GL_CULL_FACE);
 
 
@@ -644,7 +655,7 @@ int main(void)
     }
 
     glDeleteTextures(1, &mapTexture);
-    glDeleteTextures(2, &cloudTexture);
+    glDeleteTextures(2, &mountainTexture);
     glDeleteBuffers(3, VBO);
     glDeleteVertexArrays(3, VAO);
     glDeleteBuffers(1, &VBOBlue);
