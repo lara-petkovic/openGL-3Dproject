@@ -8,8 +8,8 @@
 #define DRONES_LEFT 7
 #define PI 3.141592
 #define CAMERA_X_LOC 0.0f   //0.0f
-#define CAMERA_Y_LOC 0.6f   //0.6f
-#define CAMERA_Z_LOC -1.0f  //-1.0f
+#define CAMERA_Y_LOC 0.9f   //0.6f
+#define CAMERA_Z_LOC -1.7f  //-1.0f
 
 #include "stb_image.h"
 
@@ -77,6 +77,10 @@ bool isMapHidden = false;
 Location helicopterPositions[5];
 auto startTime = chrono::high_resolution_clock::now();
 
+
+void renderClouds(unsigned int baseShader, unsigned int cloud1VAO, bool& hasTexture, int& colorLoc, unsigned int modelLocBase, ModelData& cloud1);
+
+void renderMountain(unsigned int baseShader, unsigned int mountainVAO, unsigned int mapTexture, glm::mat4& model, unsigned int modelLocBase, ModelData& mountain);
 
 int main(void)
 {
@@ -211,7 +215,6 @@ int main(void)
 
     // Renderovanje teksture -----------------------------------------------------------
     unsigned mapTexture = loadImageToTexture("res/novi-sad.png");
-    unsigned mountainTexture = loadImageToTexture("res/novi-sad.png");
 
     glBindTexture(GL_TEXTURE_2D, mapTexture);
     glGenerateMipmap(GL_TEXTURE_2D);
@@ -356,6 +359,7 @@ int main(void)
     bool wasXpressed = false;
 
     glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
     glCullFace(GL_BACK);
 
     while (!glfwWindowShouldClose(window))
@@ -530,7 +534,7 @@ int main(void)
         float elapsedTime = chrono::duration_cast<chrono::milliseconds>(currentTime - startTime).count() / 1000.0f;
 
 
-        // Renderovanje helikoptera -------------------------------------------------------------------------
+        // Renderovanje niskoletnih meta -------------------------------------------------------------------------
         for (int i = 0; i < 5; i++) {
             //// Izraèunamo vektor od helikoptera do centra
             //float dirX = 0.42 - helicopterPositions[i].x;
@@ -586,68 +590,11 @@ int main(void)
         moveHelicoptersTowardsCityCenter(0.42, 0.08, droneSpeed / 3);
 
         // Renderovanje planine ------------------------------------------------------------------------------
-        glUseProgram(textureShader);
-        glBindVertexArray(mountainVAO);
+        renderMountain(baseShader, mountainVAO, mapTexture, model, modelLocBase, mountain);
 
-        // Uniforme teksture planine
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, mapTexture);
-        glUniform1i(glGetUniformLocation(textureShader, "uTex"), 0);
-
-        model = scale(model, vec3(0.1, 0.1, 0.001));
-        model = translate(model, vec3(0.0, 0.0, -0.3));
-        glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model));
-
-        glDrawArrays(GL_TRIANGLES, 0, mountain.vertices.size());
-        glBindTexture(GL_TEXTURE_2D, 0);
-        glBindVertexArray(0);
-
-        // Renderovanje 1. seta oblaka ------------------------------------------------------------------------------
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glUseProgram(baseShader);
-        glBindVertexArray(cloud1VAO);
-
-        // Renderovanje prednjeg oblaka seta
-        colorLoc = glGetUniformLocation(baseShader, "color");
-        glUniform3f(colorLoc, 0.7, 0.7, 0.7);
-        GLuint alphaLoc = glGetUniformLocation(baseShader, "uAlpha");
-        glUniform1f(alphaLoc, 0.5);
-        mat4 model1 = mat4(1.0f);
-        model1 = scale(model1, vec3(0.1));
-        model1 = translate(model1, vec3(0.0, 9.0, 7.0));
-        glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model1));
-
-        glDisable(GL_CULL_FACE);
-        glDrawArrays(GL_TRIANGLES, 0, cloud1.vertices.size());
-
-        // Renderovanje zadnjeg oblaka seta
-        glUniform1f(alphaLoc, 0.5);
-        mat4 model2 = mat4(1.0f);
-        model2 = scale(model2, vec3(0.1));
-        model2 = translate(model2, vec3(0.0, 9.8, 9.0));
-        glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model2));
-        glDrawArrays(GL_TRIANGLES, 0, cloud1.vertices.size());
-
-        // Renderovanje 2. seta oblaka ---- ---- ---- ---- ---- ---- .-.. .- .-. .- ---- ---- ---- ---- ---- ---- ----
-        glUniform1f(alphaLoc, 0.5);
-        mat4 model3 = mat4(1.0f);
-        model3 = scale(model3, vec3(0.1));
-        model3 = translate(model3, vec3(11.0, 7.8, 15.0));
-        glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model3));
-        glDrawArrays(GL_TRIANGLES, 0, cloud1.vertices.size());
-
-        glUniform1f(alphaLoc, 0.5);
-        mat4 model4 = mat4(1.0f);
-        model4 = scale(model4, vec3(0.1));
-        model4 = translate(model4, vec3(10.0, 7.8, 16.0));
-        glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model4));
-        glDrawArrays(GL_TRIANGLES, 0, cloud1.vertices.size());
-
-        glBindVertexArray(0);
-        glDisable(GL_BLEND);
-        glUniform1f(alphaLoc, 0.0);
-        glEnable(GL_CULL_FACE);
+        // Renderovanje seta oblaka --------------------------------------------------------------------------
+        bool hasTexture2 = false;
+        renderClouds(baseShader, cloud1VAO, hasTexture2, colorLoc, modelLocBase, cloud1);
 
 
         glfwSwapBuffers(window);
@@ -655,7 +602,6 @@ int main(void)
     }
 
     glDeleteTextures(1, &mapTexture);
-    glDeleteTextures(2, &mountainTexture);
     glDeleteBuffers(3, VBO);
     glDeleteVertexArrays(3, VAO);
     glDeleteBuffers(1, &VBOBlue);
@@ -681,6 +627,79 @@ int main(void)
 
     glfwTerminate();
     return 0;
+}
+
+void renderMountain(unsigned int baseShader, unsigned int mountainVAO, unsigned int mapTexture, glm::mat4& model, unsigned int modelLocBase, ModelData& mountain)
+{
+    glUseProgram(baseShader);
+    glBindVertexArray(mountainVAO);
+
+    // Uniforme teksture planine
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, mapTexture);
+    glUniform1i(glGetUniformLocation(baseShader, "uTex"), 0);
+
+    model = scale(model, vec3(0.1));
+    model = translate(model, vec3(0.0, 0.0, -10.0));
+
+    bool hasTexture = true;
+    glUniform1i(glGetUniformLocation(baseShader, "useTexture"), hasTexture);
+    glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model));
+
+    glDrawArrays(GL_TRIANGLES, 0, mountain.vertices.size());
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindVertexArray(0);
+}
+
+void renderClouds(unsigned int baseShader, unsigned int cloud1VAO, bool& hasTexture, int& colorLoc, unsigned int modelLocBase, ModelData& cloud1)
+{
+    // Renderovanje 1. seta oblaka ------------------------------------------------------------------------------
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glUseProgram(baseShader);
+    glBindVertexArray(cloud1VAO);
+
+    // Renderovanje prednjeg oblaka seta
+    glUniform1i(glGetUniformLocation(baseShader, "useTexture"), hasTexture);
+    colorLoc = glGetUniformLocation(baseShader, "color");
+    glUniform3f(colorLoc, 0.7, 0.7, 0.7);
+    GLuint alphaLoc = glGetUniformLocation(baseShader, "uAlpha");
+    glUniform1f(alphaLoc, 0.5);
+    mat4 model1 = mat4(1.0f);
+    model1 = scale(model1, vec3(0.1));
+    model1 = translate(model1, vec3(0.0, 9.0, 7.0));
+    glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model1));
+
+    glDisable(GL_CULL_FACE);
+    glDrawArrays(GL_TRIANGLES, 0, cloud1.vertices.size());
+
+    // Renderovanje zadnjeg oblaka seta
+    glUniform1f(alphaLoc, 0.5);
+    mat4 model2 = mat4(1.0f);
+    model2 = scale(model2, vec3(0.1));
+    model2 = translate(model2, vec3(0.0, 9.8, 9.0));
+    glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model2));
+    glDrawArrays(GL_TRIANGLES, 0, cloud1.vertices.size());
+
+    // Renderovanje 2. seta oblaka ---- ---- ---- ---- ---- ---- .-.. .- .-. .- ---- ---- ---- ---- ---- ---- ----
+    glUniform1f(alphaLoc, 0.5);
+    mat4 model3 = mat4(1.0f);
+    model3 = scale(model3, vec3(0.1));
+    model3 = translate(model3, vec3(11.0, 7.8, 15.0));
+    glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model3));
+    glDrawArrays(GL_TRIANGLES, 0, cloud1.vertices.size());
+
+    glUniform1f(alphaLoc, 0.5);
+    mat4 model4 = mat4(1.0f);
+    model4 = scale(model4, vec3(0.1));
+    model4 = translate(model4, vec3(10.0, 7.8, 16.0));
+    glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model4));
+    glDrawArrays(GL_TRIANGLES, 0, cloud1.vertices.size());
+
+    glBindVertexArray(0);
+    glDisable(GL_BLEND);
+    glUniform1f(alphaLoc, 0.0);
+    glEnable(GL_CULL_FACE);
 }
 
 bool checkCollision(float object1X, float object1Y, float object1Radius, float object2X, float object2Y, float object2Radius) {
