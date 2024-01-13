@@ -8,8 +8,8 @@
 #define DRONES_LEFT 7
 #define PI 3.141592
 #define CAMERA_X_LOC 0.0f   //0.0f
-#define CAMERA_Y_LOC 0.9f   //0.6f
-#define CAMERA_Z_LOC -1.7f  //-1.0f
+#define CAMERA_Y_LOC 0.4f   //0.6f
+#define CAMERA_Z_LOC -0.65f  //-1.0f
 
 #include "stb_image.h"
 
@@ -45,8 +45,7 @@ struct ModelData {
 };
 
 
-unsigned int compileShader(GLenum type, const char* source);
-unsigned int createShader(const char* vsSource, const char* fsSource);
+
 void setXZCircle(float  circle[96], float r, float xPomeraj, float zPomeraj);
 void setXYCircle(float  circle[96], float r, float xPomeraj, float zPomeraj);
 static unsigned loadImageToTexture(const char* filePath);
@@ -55,6 +54,11 @@ void generateHelicopterPositions(int number);
 void moveHelicoptersTowardsCityCenter(float cityCenterX, float cityCenterY, float speed);
 bool checkCollision(float object1X, float object1Y, float object1Radius, float object2X, float object2Y, float object2Radius);
 bool isDroneOutsideScreen(float droneX, float droneY);
+void renderClouds(unsigned int baseShader, unsigned int cloud1VAO, bool& hasTexture, int& colorLoc, unsigned int modelLocBase, ModelData& cloud1);
+void renderMountain(unsigned int baseShader, unsigned int mountainVAO, unsigned int mapTexture, glm::mat4& model, unsigned int modelLocBase, ModelData& mountain);
+
+unsigned int compileShader(GLenum type, const char* source);
+unsigned int createShader(const char* vsSource, const char* fsSource);
 ModelData loadModel(const char* filePath);
 void processMesh(aiMesh* mesh, const aiScene* scene, ModelData& modelData);
 void processNode(aiNode* node, const aiScene* scene, ModelData& modelData);
@@ -78,9 +82,9 @@ Location helicopterPositions[5];
 auto startTime = chrono::high_resolution_clock::now();
 
 
-void renderClouds(unsigned int baseShader, unsigned int cloud1VAO, bool& hasTexture, int& colorLoc, unsigned int modelLocBase, ModelData& cloud1);
 
-void renderMountain(unsigned int baseShader, unsigned int mountainVAO, unsigned int mapTexture, glm::mat4& model, unsigned int modelLocBase, ModelData& mountain);
+
+void renderBase(unsigned int baseShader, unsigned int baseVAO, int& colorLoc, unsigned int modelLocBase, ModelData& base);
 
 int main(void)
 {
@@ -170,16 +174,31 @@ int main(void)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
-    // Oblak1 ------------------------------------------------------------------------------------------------------------
+    // Oblak ------------------------------------------------------------------------------------------------------------
     const char* modelPath3 = "res/clouds/Cloud.obj";
-    ModelData cloud1 = loadModel(modelPath3);
+    ModelData cloud = loadModel(modelPath3);
 
-    unsigned int cloud1VAO, cloud1VBO;
-    glGenVertexArrays(1, &cloud1VAO);
-    glGenBuffers(1, &cloud1VBO);
-    glBindVertexArray(cloud1VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, cloud1VBO);
-    glBufferData(GL_ARRAY_BUFFER, cloud1.vertices.size() * sizeof(vec3), &cloud1.vertices[0], GL_STATIC_DRAW);
+    unsigned int cloudVAO, cloudVBO;
+    glGenVertexArrays(1, &cloudVAO);
+    glGenBuffers(1, &cloudVBO);
+    glBindVertexArray(cloudVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, cloudVBO);
+    glBufferData(GL_ARRAY_BUFFER, cloud.vertices.size() * sizeof(vec3), &cloud.vertices[0], GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    // Baza ------------------------------------------------------------------------------------------------------------
+    const char* modelPath4 = "res/base/Base.obj";
+    ModelData base = loadModel(modelPath4);
+
+    unsigned int baseVAO, baseVBO;
+    glGenVertexArrays(1, &baseVAO);
+    glGenBuffers(1, &baseVBO);
+    glBindVertexArray(baseVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, baseVBO);
+    glBufferData(GL_ARRAY_BUFFER, base.vertices.size() * sizeof(vec3), &base.vertices[0], GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -193,10 +212,10 @@ int main(void)
 
     unsigned int stride = (3 + 2) * sizeof(float);
 
-    unsigned int VAO[3];
-    glGenVertexArrays(3, VAO);
-    unsigned int VBO[3];
-    glGenBuffers(3, VBO);
+    unsigned int VAO[2];
+    glGenVertexArrays(2, VAO);
+    unsigned int VBO[2];
+    glGenBuffers(2, VBO);
 
     // VAO i VBO teksture -------------------------------------------------------------    
     glGenVertexArrays(1, &VAO[0]);
@@ -226,28 +245,16 @@ int main(void)
     unsigned uTexLoc = glGetUniformLocation(textureShader, "uTex");
     glUniform1i(uTexLoc, 0);
 
-    // Opis baze -----------------------------------------------------------------------
-    float baseCircle[CRES * 3 + 6];
-    setXZCircle(baseCircle, 0.07, 0.0, -0.45);
-
-    // VAO i VBO baze
-    glBindVertexArray(VAO[1]);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO[1]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(baseCircle), baseCircle, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    glBindVertexArray(0);
-
 
     // Opis centra Novog Sada ----------------------------------------------------------
     float cityCenterCircle[CRES * 3 + 6];
     setXZCircle(cityCenterCircle, 0.017, 0.42, 0.08);
 
     // VAO i VBO centra Novog Sada
-    glGenVertexArrays(1, &VAO[2]);
-    glGenBuffers(1, &VBO[2]);
-    glBindVertexArray(VAO[2]);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO[2]);
+    glGenVertexArrays(1, &VAO[1]);
+    glGenBuffers(1, &VBO[1]);
+    glBindVertexArray(VAO[1]);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO[1]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(cityCenterCircle), cityCenterCircle, GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
@@ -287,7 +294,7 @@ int main(void)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
-    // LED sijalica -> indikator da li je letelica u vazduhu ----------------------------
+    // LED sijalica -> indikator da li je letelica u vazduhu -----------------------------
     float LEDCircle[CRES * 3 + 6];
     setXYCircle(LEDCircle, 0.02, -0.70, 0.85);
 
@@ -420,13 +427,8 @@ int main(void)
         }
         glBindTexture(GL_TEXTURE_2D, 0);
 
-        // Renderovanje baze
-        glUseProgram(baseShader);
-        glBindVertexArray(VAO[1]);
-        colorLoc = glGetUniformLocation(baseShader, "color");
-        glUniform3f(colorLoc, 0.0, 1.0, 0.0);
-        glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(baseCircle) / (3 * sizeof(float)));
-
+        // Renderovanje baze ------------------------------------------------------------------------------------
+        renderBase(baseShader, baseVAO, colorLoc, modelLocBase, base);
 
         // Renderovanje preostalih dronova    0, 1, -1 ----------------------------------------------------------
         glCullFace(GL_FRONT);
@@ -434,8 +436,8 @@ int main(void)
         for (int i = 0; i < dronesLeft; ++i) {
             glBindVertexArray(VAOdronLeft[i]);
             mat4 model = mat4(1.0f);
-            model = translate(model, vec3(-0.95f, 1.15f, 0.0f));
-            model = rotate(model, 0.8f, vec3(1.0f, 0.0f, 0.0f));
+            model = translate(model, vec3(-0.95f, 0.96f, 0.4f));
+            model = rotate(model, 0.77f, vec3(1.0f, 0.0f, 0.0f));
             model = scale(model, vec3(0.8f, 0.8f, 0.8f));
             glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model));
             glUniform3f(colorLoc, 0.0f, 1.0f, 0.0f);
@@ -446,6 +448,7 @@ int main(void)
         // Renderovanje pozadine LED sijalice -------------------------------------------------------------------
         glUseProgram(baseShader);
         glBindVertexArray(VAOLEDBackground);
+
 
         glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model)); // (Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
         glUniformMatrix4fv(viewLocBase, 1, GL_FALSE, value_ptr(view));
@@ -469,7 +472,7 @@ int main(void)
 
 
         // Renderovanje centra Novog Sada ------------------------------------------------------------------------
-        glBindVertexArray(VAO[2]);
+        glBindVertexArray(VAO[1]);
         glUniform3f(colorLoc, 0.0, 0.0, 0.0);
         glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(cityCenterCircle) / (3 * sizeof(float)));
 
@@ -594,7 +597,7 @@ int main(void)
 
         // Renderovanje seta oblaka --------------------------------------------------------------------------
         bool hasTexture2 = false;
-        renderClouds(baseShader, cloud1VAO, hasTexture2, colorLoc, modelLocBase, cloud1);
+        renderClouds(baseShader, cloudVAO, hasTexture2, colorLoc, modelLocBase, cloud);
 
 
         glfwSwapBuffers(window);
@@ -602,8 +605,8 @@ int main(void)
     }
 
     glDeleteTextures(1, &mapTexture);
-    glDeleteBuffers(3, VBO);
-    glDeleteVertexArrays(3, VAO);
+    glDeleteBuffers(2, VBO);
+    glDeleteVertexArrays(2, VAO);
     glDeleteBuffers(1, &VBOBlue);
     glDeleteVertexArrays(1, &VAOBlue);
     glDeleteBuffers(1, &VBOLED);
@@ -614,8 +617,10 @@ int main(void)
     glDeleteVertexArrays(1, &mountainVAO);
     glDeleteBuffers(1, &droneVBO);
     glDeleteVertexArrays(1, &droneVAO);
-    glDeleteBuffers(1, &cloud1VBO);
-    glDeleteVertexArrays(1, &cloud1VAO);
+    glDeleteBuffers(1, &cloudVBO);
+    glDeleteVertexArrays(1, &cloudVAO);
+    glDeleteBuffers(1, &baseVBO);
+    glDeleteVertexArrays(1, &baseVAO);
 
     glDeleteProgram(textureShader);
     glDeleteProgram(baseShader);
@@ -629,6 +634,29 @@ int main(void)
     return 0;
 }
 
+void renderBase(unsigned int baseShader, unsigned int baseVAO, int& colorLoc, unsigned int modelLocBase, ModelData& base)
+{
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glUseProgram(baseShader);
+    glBindVertexArray(baseVAO);
+
+    // Renderovanje prednjeg oblaka seta
+    colorLoc = glGetUniformLocation(baseShader, "color");
+    glUniform3f(colorLoc, 0.0, 1.0, 0.0);
+    mat4 modelB = mat4(1.0f);
+    modelB = scale(modelB, vec3(1.0));
+    modelB = translate(modelB, vec3(0.0, 0.0, -0.45));
+    glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(modelB));
+    GLuint alphaLoc2 = glGetUniformLocation(baseShader, "uAlpha"); // Izbrisi ovo kad napravis svetlo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    glUniform1f(alphaLoc2, 0.1); // I ovo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    //glDisable(GL_CULL_FACE);
+    glDrawArrays(GL_TRIANGLES, 0, base.vertices.size());
+    glBindVertexArray(0);
+    glDisable(GL_BLEND);
+}
+
 void renderMountain(unsigned int baseShader, unsigned int mountainVAO, unsigned int mapTexture, glm::mat4& model, unsigned int modelLocBase, ModelData& mountain)
 {
     glUseProgram(baseShader);
@@ -640,15 +668,16 @@ void renderMountain(unsigned int baseShader, unsigned int mountainVAO, unsigned 
     glUniform1i(glGetUniformLocation(baseShader, "uTex"), 0);
 
     model = scale(model, vec3(0.1));
-    model = translate(model, vec3(0.0, 0.0, -10.0));
+    model = translate(model, vec3(0.0, 0.0, -12.8));
 
     bool hasTexture = true;
     glUniform1i(glGetUniformLocation(baseShader, "useTexture"), hasTexture);
     glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model));
-
+    glDisable(GL_CULL_FACE);
     glDrawArrays(GL_TRIANGLES, 0, mountain.vertices.size());
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindVertexArray(0);
+    glEnable(GL_CULL_FACE);
 }
 
 void renderClouds(unsigned int baseShader, unsigned int cloud1VAO, bool& hasTexture, int& colorLoc, unsigned int modelLocBase, ModelData& cloud1)
@@ -667,7 +696,7 @@ void renderClouds(unsigned int baseShader, unsigned int cloud1VAO, bool& hasText
     glUniform1f(alphaLoc, 0.5);
     mat4 model1 = mat4(1.0f);
     model1 = scale(model1, vec3(0.1));
-    model1 = translate(model1, vec3(0.0, 9.0, 7.0));
+    model1 = translate(model1, vec3(0.0, 6.0, 7.0));
     glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model1));
 
     glDisable(GL_CULL_FACE);
@@ -677,7 +706,7 @@ void renderClouds(unsigned int baseShader, unsigned int cloud1VAO, bool& hasText
     glUniform1f(alphaLoc, 0.5);
     mat4 model2 = mat4(1.0f);
     model2 = scale(model2, vec3(0.1));
-    model2 = translate(model2, vec3(0.0, 9.8, 9.0));
+    model2 = translate(model2, vec3(0.0, 6.8, 9.0));
     glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model2));
     glDrawArrays(GL_TRIANGLES, 0, cloud1.vertices.size());
 
@@ -802,7 +831,7 @@ void setXZCircle(float  circle[96], float r, float xPomeraj, float zPomeraj)
     circle[1] = 0.0f;
     circle[2] = centerZ + zPomeraj;
 
-    for (int i = 0; i <= CRES; i++) {
+    for (int i = CRES; i >=0; i--) {
         float angle = (PI / 180) * (i * 360 / CRES);
         circle[3 + 3 * i] = centerX + xPomeraj + r * cos(angle); // Xi pomeren za xPomeraj
         circle[3 + 3 * i + 1] = 0.0f;
