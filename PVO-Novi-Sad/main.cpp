@@ -9,8 +9,8 @@
 #define LOW_HELICOPTER_NUM 5
 #define HELICOPTER_NUM 5
 #define PI 3.141592
-#define CAMERA_X_LOC 0.8f   //0.0f
-#define CAMERA_Y_LOC 0.8f   //0.4f
+#define CAMERA_X_LOC 0.0f   //0.0f
+#define CAMERA_Y_LOC 0.4f   //0.4f
 #define CAMERA_Z_LOC -0.65f  //-1.0f -0.65
 
 #include "stb_image.h"
@@ -640,7 +640,7 @@ int main(void)
             glBindVertexArray(0);
         }
 
-        moveHelicoptersTowardsCityCenter(-0.38 * 100, 0.0, 0.08 * 100, lowDroneSpeed * 1000);
+        moveHelicoptersTowardsCityCenter(-0.38 * 100, 1.0, 0.08 * 100, lowDroneSpeed * 1000);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
