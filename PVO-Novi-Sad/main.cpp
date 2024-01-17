@@ -9,8 +9,8 @@
 #define LOW_HELICOPTER_NUM 5
 #define HELICOPTER_NUM 5
 #define PI 3.141592
-#define CAMERA_X_LOC 0.0f   //0.0f
-#define CAMERA_Y_LOC 0.4f   //0.4f
+#define CAMERA_X_LOC 0.8f   //0.0f
+#define CAMERA_Y_LOC 0.8f   //0.4f
 #define CAMERA_Z_LOC -0.65f  //-1.0f -0.65
 
 #include "stb_image.h"
@@ -58,8 +58,10 @@ void generateHelicopterPositions(int number);
 void moveHelicoptersTowardsCityCenter(float cityCenterX, float cityCenterY, float cityCenterZ, float speed);
 bool checkCollision(float object1X, float object1Y, float object1Radius, float object2X, float object2Y, float object2Radius);
 bool isDroneOutsideScreen(float droneX, float droneY);
+
 void renderClouds(unsigned int baseShader, unsigned int cloud1VAO, bool& hasTexture, int& colorLoc, unsigned int modelLocBase, ModelData& cloud1);
 void renderMountain(unsigned int baseShader, unsigned int mountainVAO, unsigned int mapTexture, glm::mat4& model, unsigned int modelLocBase, ModelData& mountain);
+void renderBase(unsigned int baseShader, unsigned int baseVAO, int& colorLoc, unsigned int modelLocBase, ModelData& base);
 
 unsigned int compileShader(GLenum type, const char* source);
 unsigned int createShader(const char* vsSource, const char* fsSource);
@@ -94,12 +96,9 @@ Location3D helicopterPositions[HELICOPTER_NUM];
 auto startTime = chrono::high_resolution_clock::now();
 
 
-
-
-void renderBase(unsigned int baseShader, unsigned int baseVAO, int& colorLoc, unsigned int modelLocBase, ModelData& base);
-
 int main(void)
 {
+
     if (!glfwInit())
     {
         cout << "Greska pri ucitavanju GLFW biblioteke!\n";
@@ -804,20 +803,20 @@ void moveHelicoptersTowardsCityCenter(float cityCenterX, float cityCenterY, floa
     for (int i = 0; i < HELICOPTER_NUM; i++) {
         // Izracunamo vektor od helikoptera do centra
         float dirX = cityCenterX - helicopterPositions[i].x;
-        //float dirY = cityCenterY - helicopterPositions[i].y;
+        float dirY = cityCenterY - helicopterPositions[i].y;
         float dirZ = cityCenterZ - helicopterPositions[i].z;
 
         // Izracunamo razdaljinu od koptera do centra
-        float distance = sqrt(dirX * dirX + dirZ * dirZ);
+        float distance = sqrt(dirX * dirX + dirZ * dirZ + dirY * dirY);
 
         // Normalizujemo vektor
         dirX /= distance;
-        //dirY /= distance;
+        dirY /= distance;
         dirZ /= distance;
 
         // Pomeramo helikopter ka centru odredjenom brzinom
         helicopterPositions[i].x += dirX * speed;
-        //helicopterPositions[i].y += dirY * speed;
+        helicopterPositions[i].y += dirY * speed;
         helicopterPositions[i].z += dirZ * speed;
     }
 }
@@ -860,27 +859,26 @@ void generateLowHelicopterPositions(int number) {
     }
 }
 void generateHelicopterPositions(int number) {
-    //srand(static_cast<unsigned>(time(nullptr)));
+    srand(static_cast<unsigned>(time(nullptr)));
 
-    helicopterPositions[0].x = -100.0f;
-    helicopterPositions[0].y = 0.01f;
-    helicopterPositions[0].z = -9.0f;
-
-    helicopterPositions[1].x = 100.0f;
-    helicopterPositions[1].y = 0.01f;
-    helicopterPositions[1].z = 0.0f;
-
-    helicopterPositions[2].x = 10.0f;
-    helicopterPositions[2].y = 0.01f;
-    helicopterPositions[2].z = 100.0f;
-
-    helicopterPositions[3].x = -37.0f;
-    helicopterPositions[3].y = 0.01f;
-    helicopterPositions[3].z = 100.0f;
-
-    helicopterPositions[4].x = -5.0f;
-    helicopterPositions[4].y = 0.01f;
-    helicopterPositions[4].z = 100.0f;
+    for (int i = 0; i < number; ++i) {
+        int strana = rand() % 3;
+        if (strana == 0) {                                      // Leva strana (zbog -x)
+            helicopterPositions[i].x = 100;
+            helicopterPositions[i].y = static_cast<float>(rand() % 101);
+            helicopterPositions[i].z = static_cast<float>(rand() % 101);
+        }
+        else if (strana == 1) {                                 // Desna strana
+            helicopterPositions[i].x = -100;
+            helicopterPositions[i].y = static_cast<float>(rand() % 101);
+            helicopterPositions[i].z = static_cast<float>(rand() % 101);
+        }
+        else {                                                  // Ispred nas -> Ne ide iza planine
+            helicopterPositions[i].x = static_cast<float>(rand() % 101);
+            helicopterPositions[i].y = static_cast<float>(rand() % 101);
+            helicopterPositions[i].z = -100;
+        }
+    }
 }
 
 
