@@ -10,7 +10,7 @@
 #define HELICOPTER_NUM 5
 #define PI 3.141592
 #define CAMERA_X_LOC 0.0f   //0.0f
-#define CAMERA_Y_LOC 0.4f   //0.6f
+#define CAMERA_Y_LOC 0.4f   //0.4f
 #define CAMERA_Z_LOC -0.65f  //-1.0f -0.65
 
 #include "stb_image.h"
@@ -107,6 +107,7 @@ int main(void)
     }
 
     generateLowHelicopterPositions(LOW_HELICOPTER_NUM);
+    generateHelicopterPositions(HELICOPTER_NUM);
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -485,15 +486,15 @@ int main(void)
         glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(LEDBackgroundCircle) / (3 * sizeof(float)));
 
         // Renderovanje LED sijalice -> upaljena ako postoji letelica u vazduhu
-        //glBindVertexArray(VAOLED);
-        //colorLoc = glGetUniformLocation(baseShader, "color");
-        //if (coptersOnScreen) {
-        //    glUniform3f(colorLoc, 1.0, 0.0, 0.0); // Crvena boja LED sijalice kada ima helikoptera
-        //}
-        //else {
-        //    glUniform3f(colorLoc, 0.0, 1.0, 0.0); // Zelena boja LED sijalice kada nema helikoptera
-        //}
-        //glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(LEDCircle) / (3 * sizeof(float)));
+        glBindVertexArray(VAOLED);
+        colorLoc = glGetUniformLocation(baseShader, "color");
+        if (coptersOnScreen) {
+            glUniform3f(colorLoc, 1.0, 0.0, 0.0); // Crvena boja LED sijalice kada ima helikoptera
+        }
+        else {
+            glUniform3f(colorLoc, 0.0, 1.0, 0.0); // Zelena boja LED sijalice kada nema helikoptera
+        }
+        glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(LEDCircle) / (3 * sizeof(float)));
 
 
         // Renderovanje centra Novog Sada ------------------------------------------------------------------------
@@ -622,14 +623,11 @@ int main(void)
         renderClouds(baseShader, cloudVAO, hasTexture2, colorLoc, modelLocBase, cloud);
 
         // Renderovanje helikoptera --------------------------------------------------------------------------
-        generateHelicopterPositions(HELICOPTER_NUM);
-        
         glUseProgram(baseShader);
 
         for (int i = 0; i < HELICOPTER_NUM; ++i) {
             glBindVertexArray(helicopterVAO);
 
-            // Set helicopter model matrix based on its position
             mat4 modelH = mat4(1.0f);
             modelH = scale(modelH, vec3(0.01));
             //modelH = rotate(modelH, 0.5f, vec3(1.0f, 0.0f, 0.0f));
@@ -642,6 +640,8 @@ int main(void)
 
             glBindVertexArray(0);
         }
+
+        moveHelicoptersTowardsCityCenter(-0.38 * 100, 0.0, 0.08 * 100, lowDroneSpeed * 1000);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -783,7 +783,7 @@ bool checkCollision(float object1X, float object1Y, float object1Radius, float o
 
 
 void moveLowHelicoptersTowardsCityCenter(float cityCenterX, float cityCenterY, float speed) {
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < LOW_HELICOPTER_NUM; i++) {
         // Izracunamo vektor od helikoptera do centra
         float dirX = cityCenterX - lowHelicopterPositions[i].x;
         float dirY = cityCenterY - lowHelicopterPositions[i].y;
@@ -801,23 +801,23 @@ void moveLowHelicoptersTowardsCityCenter(float cityCenterX, float cityCenterY, f
     }
 }
 void moveHelicoptersTowardsCityCenter(float cityCenterX, float cityCenterY, float cityCenterZ, float speed) {
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < HELICOPTER_NUM; i++) {
         // Izracunamo vektor od helikoptera do centra
         float dirX = cityCenterX - helicopterPositions[i].x;
-        float dirY = cityCenterY - helicopterPositions[i].y;
+        //float dirY = cityCenterY - helicopterPositions[i].y;
         float dirZ = cityCenterZ - helicopterPositions[i].z;
 
         // Izracunamo razdaljinu od koptera do centra
-        float distance = sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ);
+        float distance = sqrt(dirX * dirX + dirZ * dirZ);
 
         // Normalizujemo vektor
         dirX /= distance;
-        dirY /= distance;
+        //dirY /= distance;
         dirZ /= distance;
 
         // Pomeramo helikopter ka centru odredjenom brzinom
         helicopterPositions[i].x += dirX * speed;
-        helicopterPositions[i].y += dirY * speed;
+        //helicopterPositions[i].y += dirY * speed;
         helicopterPositions[i].z += dirZ * speed;
     }
 }
@@ -862,25 +862,25 @@ void generateLowHelicopterPositions(int number) {
 void generateHelicopterPositions(int number) {
     //srand(static_cast<unsigned>(time(nullptr)));
 
-    helicopterPositions[0].x = -5.0f;
-    helicopterPositions[0].y = 1.0f;
+    helicopterPositions[0].x = -100.0f;
+    helicopterPositions[0].y = 0.01f;
     helicopterPositions[0].z = -9.0f;
 
-    helicopterPositions[1].x = -9.0f;
-    helicopterPositions[1].y = 1.0f;
+    helicopterPositions[1].x = 100.0f;
+    helicopterPositions[1].y = 0.01f;
     helicopterPositions[1].z = 0.0f;
 
-    helicopterPositions[2].x = 5.0f;
-    helicopterPositions[2].y = 1.0f;
-    helicopterPositions[2].z = 0.0f;
+    helicopterPositions[2].x = 10.0f;
+    helicopterPositions[2].y = 0.01f;
+    helicopterPositions[2].z = 100.0f;
 
-    helicopterPositions[3].x = 8.0f;
-    helicopterPositions[3].y = 1.0f;
-    helicopterPositions[3].z = 0.0f;
+    helicopterPositions[3].x = -37.0f;
+    helicopterPositions[3].y = 0.01f;
+    helicopterPositions[3].z = 100.0f;
 
     helicopterPositions[4].x = -5.0f;
-    helicopterPositions[4].y = 1.0f;
-    helicopterPositions[4].z = -1.0f;
+    helicopterPositions[4].y = 0.01f;
+    helicopterPositions[4].z = 100.0f;
 }
 
 
