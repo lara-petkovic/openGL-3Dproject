@@ -390,6 +390,38 @@ int main(void)
     unsigned int projectionLocDron = glGetUniformLocation(dronShader, "uP");
     unsigned int projectionLocBase = glGetUniformLocation(baseShader, "uP");
 
+    unsigned int viewPosLoc = glGetUniformLocation(baseShader, "uViewPos");
+
+    unsigned int lightPosLoc = glGetUniformLocation(baseShader, "uLight.pos");
+    unsigned int lightALoc = glGetUniformLocation(baseShader, "uLight.kA");
+    unsigned int lightDLoc = glGetUniformLocation(baseShader, "uLight.kD");
+    unsigned int lightSLoc = glGetUniformLocation(baseShader, "uLight.kS");
+
+    unsigned int materialShineLoc = glGetUniformLocation(baseShader, "uMaterial.shine");
+    unsigned int materialALoc = glGetUniformLocation(baseShader, "uMaterial.kA");
+    unsigned int materialDLoc = glGetUniformLocation(baseShader, "uMaterial.kD");
+    unsigned int materialSLoc = glGetUniformLocation(baseShader, "uMaterial.kS");
+
+    glUseProgram(baseShader);
+
+    glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model));
+    glUniformMatrix4fv(viewLocBase, 1, GL_FALSE, value_ptr(view));
+    glUniformMatrix4fv(projectionLocBase, 1, GL_FALSE, value_ptr(projection));
+
+    glUniform3f(viewPosLoc, CAMERA_X_LOC, CAMERA_Y_LOC, CAMERA_Z_LOC); //Isto kao i pozicija kamere
+
+    // Bela svetlost
+    glUniform3f(lightPosLoc, 0.0, 0.25, 2.0);
+    glUniform3f(lightALoc, 0.8, 0.8, 0.8);
+    glUniform3f(lightDLoc, 1.0, 1.0, 1.0);
+    glUniform3f(lightSLoc, 0.0, 0.0, 1.0);
+
+    // Svojstva materijala
+    glUniform1f(materialShineLoc, 132.0);  // Uglancanost (manja vrednost za slabiji sjaj)
+    glUniform3f(materialALoc, 0.7, 0.7, 0.7);  // Ambijentalna refleksija materijala (siva)
+    glUniform3f(materialDLoc, 0.8, 0.8, 0.8);  // Difuzna refleksija materijala (svetlo siva)
+    glUniform3f(materialSLoc, 0.8, 0.8, 0.8);  // Spekularna refleksija materijala (siva)
+
     bool wasXpressed = false;
 
     glEnable(GL_CULL_FACE);
