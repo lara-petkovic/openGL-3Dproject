@@ -6,10 +6,12 @@
 
 #define CRES 30
 #define DRONES_LEFT 7
+#define LOW_HELICOPTER_NUM 5
+#define HELICOPTER_NUM 5
 #define PI 3.141592
 #define CAMERA_X_LOC 0.0f   //0.0f
 #define CAMERA_Y_LOC 0.4f   //0.6f
-#define CAMERA_Z_LOC -0.65f  //-1.0f
+#define CAMERA_Z_LOC -0.65f  //-1.0f -0.65
 
 #include "stb_image.h"
 
@@ -50,8 +52,10 @@ void setXZCircle(float  circle[96], float r, float xPomeraj, float zPomeraj);
 void setXYCircle(float  circle[96], float r, float xPomeraj, float zPomeraj);
 static unsigned loadImageToTexture(const char* filePath);
 void moveDrone(GLFWwindow* window, float& droneX, float& droneY, float droneSpeed, unsigned int wWidth, unsigned int wHeight);
+void generateLowHelicopterPositions(int number);
+void moveLowHelicoptersTowardsCityCenter(float cityCenterX, float cityCenterY, float speed);
 void generateHelicopterPositions(int number);
-void moveHelicoptersTowardsCityCenter(float cityCenterX, float cityCenterY, float speed);
+void moveHelicoptersTowardsCityCenter(float cityCenterX, float cityCenterY, float cityCenterZ, float speed);
 bool checkCollision(float object1X, float object1Y, float object1Radius, float object2X, float object2Y, float object2Radius);
 bool isDroneOutsideScreen(float droneX, float droneY);
 void renderClouds(unsigned int baseShader, unsigned int cloud1VAO, bool& hasTexture, int& colorLoc, unsigned int modelLocBase, ModelData& cloud1);
@@ -69,16 +73,24 @@ struct Location {
     float y;
 };
 
+struct Location3D {
+    float x;
+    float y;
+    float z;
+};
+
 float droneX = 0.0f;
 float droneY = 0.0f;
 float droneZ = -0.45f;
-float droneSpeed = 0.0002f;
+float lowDroneSpeed = 0.0002f / 3.0;
+float helicopterSpeed = 0.0001f;
 bool isSpacePressed = false;
 bool wasSpacePressed = false;
 bool coptersOnScreen = true;
 int numberOfCollied = 0;
 bool isMapHidden = false;
-Location helicopterPositions[5];
+Location lowHelicopterPositions[LOW_HELICOPTER_NUM];
+Location3D helicopterPositions[HELICOPTER_NUM];
 auto startTime = chrono::high_resolution_clock::now();
 
 
@@ -94,7 +106,7 @@ int main(void)
         return 1;
     }
 
-    generateHelicopterPositions(5);
+    generateLowHelicopterPositions(LOW_HELICOPTER_NUM);
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -199,6 +211,21 @@ int main(void)
     glBindVertexArray(baseVAO);
     glBindBuffer(GL_ARRAY_BUFFER, baseVBO);
     glBufferData(GL_ARRAY_BUFFER, base.vertices.size() * sizeof(vec3), &base.vertices[0], GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    // Baza ------------------------------------------------------------------------------------------------------------
+    const char* modelPath5 = "res/helicopter/Helicopter.obj";
+    ModelData helicopter = loadModel(modelPath5);
+
+    unsigned int helicopterVAO, helicopterVBO;
+    glGenVertexArrays(1, &helicopterVAO);
+    glGenBuffers(1, &helicopterVBO);
+    glBindVertexArray(helicopterVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, helicopterVBO);
+    glBufferData(GL_ARRAY_BUFFER, helicopter.vertices.size() * sizeof(vec3), &helicopter.vertices[0], GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -449,7 +476,6 @@ int main(void)
         glUseProgram(baseShader);
         glBindVertexArray(VAOLEDBackground);
 
-
         glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model)); // (Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
         glUniformMatrix4fv(viewLocBase, 1, GL_FALSE, value_ptr(view));
         glUniformMatrix4fv(projectionLocBase, 1, GL_FALSE, value_ptr(projection));
@@ -459,16 +485,15 @@ int main(void)
         glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(LEDBackgroundCircle) / (3 * sizeof(float)));
 
         // Renderovanje LED sijalice -> upaljena ako postoji letelica u vazduhu
-        glBindVertexArray(VAOLED);
-        colorLoc = glGetUniformLocation(baseShader, "color");
-        if (coptersOnScreen) {
-            glUniform3f(colorLoc, 1.0, 0.0, 0.0); // Crvena boja LED sijalice kada ima helikoptera
-        }
-        else {
-            glUniform3f(colorLoc, 0.0, 1.0, 0.0); // Zelena boja LED sijalice kada nema helikoptera
-        }
-        glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(LEDCircle) / (3 * sizeof(float)));
-
+        //glBindVertexArray(VAOLED);
+        //colorLoc = glGetUniformLocation(baseShader, "color");
+        //if (coptersOnScreen) {
+        //    glUniform3f(colorLoc, 1.0, 0.0, 0.0); // Crvena boja LED sijalice kada ima helikoptera
+        //}
+        //else {
+        //    glUniform3f(colorLoc, 0.0, 1.0, 0.0); // Zelena boja LED sijalice kada nema helikoptera
+        //}
+        //glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(LEDCircle) / (3 * sizeof(float)));
 
 
         // Renderovanje centra Novog Sada ------------------------------------------------------------------------
@@ -492,7 +517,7 @@ int main(void)
 
         if (wasSpacePressed && dronesLeft > 0)
         {
-            moveDrone(window, droneX, droneZ, droneSpeed, wWidth, wHeight);
+            moveDrone(window, droneX, droneZ, lowDroneSpeed, wWidth, wHeight);
 
             // Renderovanje 2D drona
             glUseProgram(dronShader);
@@ -508,14 +533,11 @@ int main(void)
 
             if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
             {
-                droneY += droneSpeed;
+                droneY += lowDroneSpeed;
             }
             if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
             {
-                droneY -= droneSpeed;
-                if (droneY == 0.0f) {
-
-                }
+                droneY -= lowDroneSpeed;
             }
 
             // Renderovanje 3D drona
@@ -538,7 +560,7 @@ int main(void)
 
 
         // Renderovanje niskoletnih meta -------------------------------------------------------------------------
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < LOW_HELICOPTER_NUM; i++) {
             //// Izraèunamo vektor od helikoptera do centra
             //float dirX = 0.42 - helicopterPositions[i].x;
             //float dirY = 0.08 - helicopterPositions[i].y;
@@ -569,28 +591,28 @@ int main(void)
             glUniformMatrix4fv(projectionLocDron, 1, GL_FALSE, value_ptr(projection));
             glBindVertexArray(VAOBlue);
             GLint translationLoc = glGetUniformLocation(dronShader, "uTranslation");
-            glUniform2f(translationLoc, helicopterPositions[i].x, helicopterPositions[i].y);
+            glUniform2f(translationLoc, lowHelicopterPositions[i].x, lowHelicopterPositions[i].y);
             colorLoc = glGetUniformLocation(dronShader, "color");
             glUniform3f(colorLoc, redIntensity, greenIntensity, blueIntensity);
             glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(blueCircle) / (3 * sizeof(float)));
             glBindVertexArray(0);
 
-            if (checkCollision(droneX, droneZ, 0.03, helicopterPositions[i].x, helicopterPositions[i].y, 0.03)) {
+            if (checkCollision(droneX, droneZ, 0.03, lowHelicopterPositions[i].x, lowHelicopterPositions[i].y, 0.03)) {
                 droneX = 0.0f; // Resetovanje pozicije drona
                 droneY = 0.0f;
                 droneZ = -0.45f;
-                helicopterPositions[i].x = 1000.0f; // Skloni helikopter sa scene
-                helicopterPositions[i].y = 1000.0f;
+                lowHelicopterPositions[i].x = 1000.0f; // Skloni helikopter sa scene
+                lowHelicopterPositions[i].y = 1000.0f;
                 numberOfCollied++;
                 wasSpacePressed = false;
                 dronesLeft--;
             }
-            if (numberOfCollied == 5) {
+            if (numberOfCollied == LOW_HELICOPTER_NUM) {
                 coptersOnScreen = false;
             }
         }
 
-        moveHelicoptersTowardsCityCenter(0.42, 0.08, droneSpeed / 3);
+        moveLowHelicoptersTowardsCityCenter(0.42, 0.08, lowDroneSpeed / 3);
 
         // Renderovanje planine ------------------------------------------------------------------------------
         renderMountain(baseShader, mountainVAO, mapTexture, model, modelLocBase, mountain);
@@ -599,6 +621,27 @@ int main(void)
         bool hasTexture2 = false;
         renderClouds(baseShader, cloudVAO, hasTexture2, colorLoc, modelLocBase, cloud);
 
+        // Renderovanje helikoptera --------------------------------------------------------------------------
+        generateHelicopterPositions(HELICOPTER_NUM);
+        
+        glUseProgram(baseShader);
+
+        for (int i = 0; i < HELICOPTER_NUM; ++i) {
+            glBindVertexArray(helicopterVAO);
+
+            // Set helicopter model matrix based on its position
+            mat4 modelH = mat4(1.0f);
+            modelH = scale(modelH, vec3(0.01));
+            //modelH = rotate(modelH, 0.5f, vec3(1.0f, 0.0f, 0.0f));
+            modelH = translate(modelH, vec3(helicopterPositions[i].x, helicopterPositions[i].y, helicopterPositions[i].z));
+            
+
+            glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(modelH));
+            glUniform3f(colorLoc, 0.0, 1.0, 1.0);
+            glDrawArrays(GL_TRIANGLES, 0, helicopter.vertices.size());
+
+            glBindVertexArray(0);
+        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -621,6 +664,8 @@ int main(void)
     glDeleteVertexArrays(1, &cloudVAO);
     glDeleteBuffers(1, &baseVBO);
     glDeleteVertexArrays(1, &baseVAO);
+    glDeleteBuffers(1, &helicopterVBO);
+    glDeleteVertexArrays(1, &helicopterVAO);
 
     glDeleteProgram(textureShader);
     glDeleteProgram(baseShader);
@@ -634,6 +679,7 @@ int main(void)
     return 0;
 }
 
+
 void renderBase(unsigned int baseShader, unsigned int baseVAO, int& colorLoc, unsigned int modelLocBase, ModelData& base)
 {
     glEnable(GL_BLEND);
@@ -641,7 +687,6 @@ void renderBase(unsigned int baseShader, unsigned int baseVAO, int& colorLoc, un
     glUseProgram(baseShader);
     glBindVertexArray(baseVAO);
 
-    // Renderovanje prednjeg oblaka seta
     colorLoc = glGetUniformLocation(baseShader, "color");
     glUniform3f(colorLoc, 0.0, 1.0, 0.0);
     mat4 modelB = mat4(1.0f);
@@ -651,7 +696,6 @@ void renderBase(unsigned int baseShader, unsigned int baseVAO, int& colorLoc, un
     GLuint alphaLoc2 = glGetUniformLocation(baseShader, "uAlpha"); // Izbrisi ovo kad napravis svetlo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     glUniform1f(alphaLoc2, 0.1); // I ovo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    //glDisable(GL_CULL_FACE);
     glDrawArrays(GL_TRIANGLES, 0, base.vertices.size());
     glBindVertexArray(0);
     glDisable(GL_BLEND);
@@ -736,11 +780,13 @@ bool checkCollision(float object1X, float object1Y, float object1Radius, float o
     return distance < (object1Radius + object2Radius);
 }
 
-void moveHelicoptersTowardsCityCenter(float cityCenterX, float cityCenterY, float speed) {
+
+
+void moveLowHelicoptersTowardsCityCenter(float cityCenterX, float cityCenterY, float speed) {
     for (int i = 0; i < 5; i++) {
         // Izracunamo vektor od helikoptera do centra
-        float dirX = cityCenterX - helicopterPositions[i].x;
-        float dirY = cityCenterY - helicopterPositions[i].y;
+        float dirX = cityCenterX - lowHelicopterPositions[i].x;
+        float dirY = cityCenterY - lowHelicopterPositions[i].y;
 
         // Izracunamo razdaljinu od koptera do centra
         float distance = sqrt(dirX * dirX + dirY * dirY);
@@ -750,37 +796,59 @@ void moveHelicoptersTowardsCityCenter(float cityCenterX, float cityCenterY, floa
         dirY /= distance;
 
         // Pomeramo helikopter ka centru odredjenom brzinom
+        lowHelicopterPositions[i].x += dirX * speed;
+        lowHelicopterPositions[i].y += dirY * speed;
+    }
+}
+void moveHelicoptersTowardsCityCenter(float cityCenterX, float cityCenterY, float cityCenterZ, float speed) {
+    for (int i = 0; i < 5; i++) {
+        // Izracunamo vektor od helikoptera do centra
+        float dirX = cityCenterX - helicopterPositions[i].x;
+        float dirY = cityCenterY - helicopterPositions[i].y;
+        float dirZ = cityCenterZ - helicopterPositions[i].z;
+
+        // Izracunamo razdaljinu od koptera do centra
+        float distance = sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ);
+
+        // Normalizujemo vektor
+        dirX /= distance;
+        dirY /= distance;
+        dirZ /= distance;
+
+        // Pomeramo helikopter ka centru odredjenom brzinom
         helicopterPositions[i].x += dirX * speed;
         helicopterPositions[i].y += dirY * speed;
+        helicopterPositions[i].z += dirZ * speed;
     }
 }
 
-void generateHelicopterPositions(int number) {
+
+void generateLowHelicopterPositions(int number) {
     srand(static_cast<unsigned>(time(nullptr)));
 
     for (int i = 0; i < number; ++i) {
         int strana = rand() % 4;
         if (strana == 0) {                                    // Desna stranica
-            helicopterPositions[i].x = 1;
+            lowHelicopterPositions[i].x = 1;
             string randomFloat = "0.";
             randomFloat.append(to_string(rand() % 10));
             randomFloat.append(to_string(rand() % 10));
-            helicopterPositions[i].y = stof(randomFloat);
+            lowHelicopterPositions[i].y = stof(randomFloat);
         }
         else if (strana == 1) {                               // Gornja stranica
             string randomFloat = "0.";
             randomFloat.append(to_string(rand() % 10));
             randomFloat.append(to_string(rand() % 10));
-            helicopterPositions[i].x = stof(randomFloat);
-            helicopterPositions[i].y = 1;
+            lowHelicopterPositions[i].x = stof(randomFloat);
+            lowHelicopterPositions[i].y = 1;
         }
         //else if (strana == 2) {                               // Leva stranica
         else{
-            helicopterPositions[i].x = -1;
+            lowHelicopterPositions[i].x = -1;
             string randomFloat = "0.";
             randomFloat.append(to_string(rand() % 10));
             randomFloat.append(to_string(rand() % 10));
-            helicopterPositions[i].y = stof(randomFloat);
+            lowHelicopterPositions[i].y = stof(randomFloat);
         }
         //else {
         //    string randomFloat = "0.";                        // Donja stranica -> Ne moze nam dron doci sa nase planine
@@ -791,6 +859,30 @@ void generateHelicopterPositions(int number) {
         //}
     }
 }
+void generateHelicopterPositions(int number) {
+    //srand(static_cast<unsigned>(time(nullptr)));
+
+    helicopterPositions[0].x = -5.0f;
+    helicopterPositions[0].y = 1.0f;
+    helicopterPositions[0].z = -9.0f;
+
+    helicopterPositions[1].x = -9.0f;
+    helicopterPositions[1].y = 1.0f;
+    helicopterPositions[1].z = 0.0f;
+
+    helicopterPositions[2].x = 5.0f;
+    helicopterPositions[2].y = 1.0f;
+    helicopterPositions[2].z = 0.0f;
+
+    helicopterPositions[3].x = 8.0f;
+    helicopterPositions[3].y = 1.0f;
+    helicopterPositions[3].z = 0.0f;
+
+    helicopterPositions[4].x = -5.0f;
+    helicopterPositions[4].y = 1.0f;
+    helicopterPositions[4].z = -1.0f;
+}
+
 
 bool isDroneOutsideScreen(float droneX, float droneY)
 {
