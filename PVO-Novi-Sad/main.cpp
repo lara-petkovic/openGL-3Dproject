@@ -529,17 +529,15 @@ int main(void)
             moveDrone(window, droneX, droneZ, droneSpeed, wWidth, wHeight);
 
             // Renderovanje 2D drona
-            glUseProgram(dronShader);
-            glUniformMatrix4fv(modelLocDron, 1, GL_FALSE, value_ptr(model));
-            glUniformMatrix4fv(viewLocDron, 1, GL_FALSE, value_ptr(view));
-            glUniformMatrix4fv(projectionLocDron, 1, GL_FALSE, value_ptr(projection));
+            mat4 modelKrug = translate(model, vec3(droneX, 0.01f, droneZ));
+            glUseProgram(baseShader);
+            glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(modelKrug));
             glBindVertexArray(VAOBlue);
-            GLint translationLoc = glGetUniformLocation(dronShader, "uTranslation");
-            glUniform2f(translationLoc, droneX, droneZ);
-            colorLoc = glGetUniformLocation(dronShader, "color");
+            /*GLint translationLoc = glGetUniformLocation(baseShader, "uTranslation");
+            glUniform2f(translationLoc, droneX, droneZ);*/
+            colorLoc = glGetUniformLocation(baseShader, "color");
             glUniform3f(colorLoc, 0.0, 0.0, 1.0);
             glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(blueCircle) / (3 * sizeof(float)));
-
             if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
             {
                 droneY += droneSpeed;
@@ -548,7 +546,6 @@ int main(void)
             {
                 droneY -= droneSpeed;
             }
-
             // Renderovanje 3D drona
             glBindVertexArray(droneVAO);
             mat4 model3D = mat4(1.0f);
@@ -556,9 +553,8 @@ int main(void)
             model3D = scale(model3D, vec3(0.15f));
             glUniform3f(colorLoc, 0.0 / 255.0, 200.0 / 255.0, 35.0 / 255.0);
             glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model3D));
-            GLint translationLocDrone = glGetUniformLocation(dronShader, "uTranslation");
-            glUniform3f(translationLocDrone, 0.0f, -0.4f, -0.43f);
             glDrawArrays(GL_TRIANGLES, 0, drone.vertices.size());
+            glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(glm::mat4(1.0f)));
             glBindVertexArray(0);
         }
 
