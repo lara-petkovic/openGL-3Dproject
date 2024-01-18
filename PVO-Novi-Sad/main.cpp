@@ -46,6 +46,33 @@ struct ModelData {
     vector<vec3> normals;
 };
 
+void setupModelVAO(unsigned int& VAO, unsigned int& VBO, const ModelData& modelData) {
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+    size_t bufferSize = modelData.vertices.size() * sizeof(vec3) + modelData.textureCoords.size() * sizeof(vec2) + modelData.normals.size() * sizeof(vec3);
+    vector<char> bufferData(bufferSize);
+
+    memcpy(bufferData.data(), modelData.vertices.data(), modelData.vertices.size() * sizeof(vec3));
+    memcpy(bufferData.data() + modelData.vertices.size() * sizeof(vec3), modelData.textureCoords.data(), modelData.textureCoords.size() * sizeof(vec2));
+    memcpy(bufferData.data() + modelData.vertices.size() * sizeof(vec3) + modelData.textureCoords.size() * sizeof(vec2), modelData.normals.data(), modelData.normals.size() * sizeof(vec3));
+
+    glBufferData(GL_ARRAY_BUFFER, bufferSize, bufferData.data(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(vec2), (void*)(modelData.vertices.size() * sizeof(vec3)));
+    glEnableVertexAttribArray(1);
+
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void*)(modelData.vertices.size() * sizeof(vec3) + modelData.textureCoords.size() * sizeof(vec2)));
+    glEnableVertexAttribArray(2);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+}
 
 void setXZCircle(float  circle[96], float r, float xPomeraj, float zPomeraj);
 void setXYCircle(float  circle[96], float r, float xPomeraj, float zPomeraj);
@@ -67,7 +94,6 @@ unsigned int createShader(const char* vsSource, const char* fsSource);
 ModelData loadModel(const char* filePath);
 void processMesh(aiMesh* mesh, const aiScene* scene, ModelData& modelData);
 void processNode(aiNode* node, const aiScene* scene, ModelData& modelData);
-void setupModelVAO(unsigned int& VAO, unsigned int& VBO, const ModelData& modelData);
 
 
 struct Location {
@@ -146,12 +172,12 @@ int main(void)
 
     float vertices[] = {
    // X     Y      Z       S    T  
-    -1.0, -0.01, -1.0,    0.0, 0.0,    // Stavila sam Z osu na -0.01 radi testiranja dubine -> mapa je malo niza od svih ostalih objekata
-     1.0, -0.01, -1.0,    1.0, 0.0,
-    -1.0, -0.01,  1.0,    0.0, 1.0,
+    -1.0, -0.01, -1.0,    0.0, 0.0,   0.0, 1.0, 0.0,   // Stavila sam Z osu na -0.01 radi testiranja dubine -> mapa je malo niza od svih ostalih objekata
+     1.0, -0.01, -1.0,    1.0, 0.0,   0.0, 1.0, 0.0,
+    -1.0, -0.01,  1.0,    0.0, 1.0,   0.0, 1.0, 0.0,
 
-     1.0, -0.01, -1.0,    1.0, 0.0,
-     1.0, -0.01,  1.0,    1.0, 1.0
+     1.0, -0.01, -1.0,    1.0, 0.0,   0.0, 1.0, 0.0,
+     1.0, -0.01,  1.0,    1.0, 1.0,   0.0, 1.0, 0.0
     };
 
     // ********************************************** MODELI **********************************************
@@ -188,7 +214,7 @@ int main(void)
 
 
 
-    unsigned int stride = (3 + 2) * sizeof(float);
+    unsigned int stride = (3 + 2 + 3) * sizeof(float);
 
     unsigned int VAO[2];
     glGenVertexArrays(2, VAO);
@@ -206,6 +232,8 @@ int main(void)
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, stride, (void*)(5 * sizeof(float)));
+    glEnableVertexAttribArray(2);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
@@ -343,15 +371,27 @@ int main(void)
 
     unsigned int viewPosLoc = glGetUniformLocation(baseShader, "uViewPos");
 
-    unsigned int lightPosLoc = glGetUniformLocation(baseShader, "uLight.pos");
+    /*unsigned int lightPosLoc = glGetUniformLocation(baseShader, "uLight.pos");
     unsigned int lightALoc = glGetUniformLocation(baseShader, "uLight.kA");
     unsigned int lightDLoc = glGetUniformLocation(baseShader, "uLight.kD");
-    unsigned int lightSLoc = glGetUniformLocation(baseShader, "uLight.kS");
+    unsigned int lightSLoc = glGetUniformLocation(baseShader, "uLight.kS");*/
 
     unsigned int materialShineLoc = glGetUniformLocation(baseShader, "uMaterial.shine");
     unsigned int materialALoc = glGetUniformLocation(baseShader, "uMaterial.kA");
     unsigned int materialDLoc = glGetUniformLocation(baseShader, "uMaterial.kD");
     unsigned int materialSLoc = glGetUniformLocation(baseShader, "uMaterial.kS");
+    
+    unsigned int viewPosLocTex = glGetUniformLocation(textureShader, "uViewPos");
+
+    /*unsigned int lightPosLoc = glGetUniformLocation(baseShader, "uLight.pos");
+    unsigned int lightALoc = glGetUniformLocation(baseShader, "uLight.kA");
+    unsigned int lightDLoc = glGetUniformLocation(baseShader, "uLight.kD");
+    unsigned int lightSLoc = glGetUniformLocation(baseShader, "uLight.kS");*/
+
+    unsigned int materialShineLocTex = glGetUniformLocation(textureShader, "uMaterial.shine");
+    unsigned int materialALocTex = glGetUniformLocation(textureShader, "uMaterial.kA");
+    unsigned int materialDLocTex = glGetUniformLocation(textureShader, "uMaterial.kD");
+    unsigned int materialSLocTex = glGetUniformLocation(textureShader, "uMaterial.kS");
 
     glUseProgram(baseShader);
 
@@ -362,16 +402,32 @@ int main(void)
     glUniform3f(viewPosLoc, CAMERA_X_LOC, CAMERA_Y_LOC, CAMERA_Z_LOC); // Isto kao i pozicija kamere
 
     // Bela svetlost
-    glUniform3f(lightPosLoc, 0.0, 0.25, 2.0);
+    /*glUniform3f(lightPosLoc, 0.0, 0.25, 2.0);
     glUniform3f(lightALoc, 0.2, 0.2, 0.2);
     glUniform3f(lightDLoc, 1.0, 1.0, 1.0);
-    glUniform3f(lightSLoc, 1.0, 1.0, 1.0);
+    glUniform3f(lightSLoc, 1.0, 1.0, 1.0);*/
 
     // Svojstva materijala
     glUniform1f(materialShineLoc, 132.0);      // Uglancanost (manja vrednost za slabiji sjaj)
-    glUniform3f(materialALoc, 0.7, 0.7, 0.7);  // Ambijentalna refleksija materijala (siva)
-    glUniform3f(materialDLoc, 0.8, 0.8, 0.8);  // Difuzna refleksija materijala (svetlo siva)
-    glUniform3f(materialSLoc, 0.8, 0.8, 0.8);  // Spekularna refleksija materijala (siva)
+    glUniform3f(materialALoc, 0.2, 0.2, 0.2);  // Ambijentalna refleksija materijala (siva)
+    glUniform3f(materialDLoc, 0.5, 0.5, 0.5);  // Difuzna refleksija materijala (svetlo siva)
+    glUniform3f(materialSLoc, 0.7, 0.7, 0.7);  // Spekularna refleksija materijala (siva)
+    
+    glUseProgram(textureShader);
+    glUniform3f(viewPosLocTex, CAMERA_X_LOC, CAMERA_Y_LOC, CAMERA_Z_LOC); // Isto kao i pozicija kamere
+
+    // Bela svetlost
+    /*glUniform3f(lightPosLoc, 0.0, 0.25, 2.0);
+    glUniform3f(lightALoc, 0.2, 0.2, 0.2);
+    glUniform3f(lightDLoc, 1.0, 1.0, 1.0);
+    glUniform3f(lightSLoc, 1.0, 1.0, 1.0);*/
+
+    // Svojstva materijala
+    glUniform1f(materialShineLocTex, 132.0);      // Uglancanost (manja vrednost za slabiji sjaj)
+    glUniform3f(materialALocTex, 0.2, 0.2, 0.2);  // Ambijentalna refleksija materijala (siva)
+    glUniform3f(materialDLocTex, 0.5, 0.5, 0.5);  // Difuzna refleksija materijala (svetlo siva)
+    glUniform3f(materialSLocTex, 0.7, 0.7, 0.7);  // Spekularna refleksija materijala (siva)
+    glUseProgram(baseShader);
 
     bool wasXpressed = false;
 
@@ -598,7 +654,7 @@ int main(void)
         moveLowHelicoptersTowardsCityCenter(0.42, 0.08, helicopterSpeed / 3);
 
         // Renderovanje planine ------------------------------------------------------------------------------
-        //renderMountain(baseShader, mountainVAO, mapTexture, model, modelLocBase, mountain);
+        renderMountain(baseShader, mountainVAO, mapTexture, model, modelLocBase, mountain);
 
         // Renderovanje seta oblaka --------------------------------------------------------------------------
         bool hasTexture2 = false;
@@ -688,10 +744,13 @@ void renderMountain(unsigned int baseShader, unsigned int mountainVAO, unsigned 
     glBindTexture(GL_TEXTURE_2D, mapTexture);
     glUniform1i(glGetUniformLocation(baseShader, "uTex"), 0);
 
+    GLint colorLoc = glGetUniformLocation(baseShader, "color");
+    glUniform3f(colorLoc, 0.82, 0.67, 0.46);
+
     model = scale(model, vec3(0.1));
     model = translate(model, vec3(0.0, 0.0, -12.8));
 
-    bool hasTexture = true;
+    bool hasTexture = false;
     glUniform1i(glGetUniformLocation(baseShader, "useTexture"), hasTexture);
     glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model));
     glDisable(GL_CULL_FACE);
@@ -1067,31 +1126,4 @@ void processNode(aiNode* node, const aiScene* scene, ModelData& modelData) {
     for (unsigned int i = 0; i < node->mNumChildren; ++i) {
         processNode(node->mChildren[i], scene, modelData);
     }
-}
-void setupModelVAO(unsigned int& VAO, unsigned int& VBO, const ModelData& modelData) {
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-    size_t bufferSize = modelData.vertices.size() * sizeof(vec3) + modelData.textureCoords.size() * sizeof(vec2) + modelData.normals.size() * sizeof(vec3);
-    vector<char> bufferData(bufferSize);
-
-    memcpy(bufferData.data(), modelData.vertices.data(), modelData.vertices.size() * sizeof(vec3));
-    memcpy(bufferData.data() + modelData.vertices.size() * sizeof(vec3), modelData.textureCoords.data(), modelData.textureCoords.size() * sizeof(vec2));
-    memcpy(bufferData.data() + modelData.vertices.size() * sizeof(vec3) + modelData.textureCoords.size() * sizeof(vec2), modelData.normals.data(), modelData.normals.size() * sizeof(vec3));
-
-    glBufferData(GL_ARRAY_BUFFER, bufferSize, bufferData.data(), GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(vec2), (void*)(modelData.vertices.size() * sizeof(vec3)));
-    glEnableVertexAttribArray(1);
-
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void*)(modelData.vertices.size() * sizeof(vec3) + modelData.textureCoords.size() * sizeof(vec2)));
-    glEnableVertexAttribArray(2);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
 }
