@@ -46,33 +46,7 @@ struct ModelData {
     vector<vec3> normals;
 };
 
-void setupModelVAO(unsigned int& VAO, unsigned int& VBO, const ModelData& modelData) {
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
-    size_t bufferSize = modelData.vertices.size() * sizeof(vec3) + modelData.textureCoords.size() * sizeof(vec2) + modelData.normals.size() * sizeof(vec3);
-    vector<char> bufferData(bufferSize);
-
-    memcpy(bufferData.data(), modelData.vertices.data(), modelData.vertices.size() * sizeof(vec3));
-    memcpy(bufferData.data() + modelData.vertices.size() * sizeof(vec3), modelData.textureCoords.data(), modelData.textureCoords.size() * sizeof(vec2));
-    memcpy(bufferData.data() + modelData.vertices.size() * sizeof(vec3) + modelData.textureCoords.size() * sizeof(vec2), modelData.normals.data(), modelData.normals.size() * sizeof(vec3));
-
-    glBufferData(GL_ARRAY_BUFFER, bufferSize, bufferData.data(), GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(vec2), (void*)(modelData.vertices.size() * sizeof(vec3)));
-    glEnableVertexAttribArray(1);
-
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void*)(modelData.vertices.size() * sizeof(vec3) + modelData.textureCoords.size() * sizeof(vec2)));
-    glEnableVertexAttribArray(2);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-}
 
 void setXZCircle(float  circle[96], float r, float xPomeraj, float zPomeraj);
 void setXYCircle(float  circle[96], float r, float xPomeraj, float zPomeraj);
@@ -94,6 +68,7 @@ unsigned int createShader(const char* vsSource, const char* fsSource);
 ModelData loadModel(const char* filePath);
 void processMesh(aiMesh* mesh, const aiScene* scene, ModelData& modelData);
 void processNode(aiNode* node, const aiScene* scene, ModelData& modelData);
+void setupModelVAO(unsigned int& VAO, unsigned int& VBO, const ModelData& modelData);
 
 
 struct Location {
@@ -371,10 +346,12 @@ int main(void)
 
     unsigned int viewPosLoc = glGetUniformLocation(baseShader, "uViewPos");
 
-    /*unsigned int lightPosLoc = glGetUniformLocation(baseShader, "uLight.pos");
-    unsigned int lightALoc = glGetUniformLocation(baseShader, "uLight.kA");
-    unsigned int lightDLoc = glGetUniformLocation(baseShader, "uLight.kD");
-    unsigned int lightSLoc = glGetUniformLocation(baseShader, "uLight.kS");*/
+    unsigned int lightPosLoc = glGetUniformLocation(baseShader, "uReflector.pos");
+    unsigned int lightALoc = glGetUniformLocation(baseShader, "uReflector.kA");
+    unsigned int lightDLoc = glGetUniformLocation(baseShader, "uReflector.kD");
+    unsigned int lightSLoc = glGetUniformLocation(baseShader, "uReflector.kS");
+    unsigned int lightCutoffLoc = glGetUniformLocation(baseShader, "uReflector.cutoff");
+    unsigned int lightDirLoc = glGetUniformLocation(baseShader, "uReflector.dir");
 
     unsigned int materialShineLoc = glGetUniformLocation(baseShader, "uMaterial.shine");
     unsigned int materialALoc = glGetUniformLocation(baseShader, "uMaterial.kA");
@@ -383,15 +360,12 @@ int main(void)
     
     unsigned int viewPosLocTex = glGetUniformLocation(textureShader, "uViewPos");
 
-    /*unsigned int lightPosLoc = glGetUniformLocation(baseShader, "uLight.pos");
-    unsigned int lightALoc = glGetUniformLocation(baseShader, "uLight.kA");
-    unsigned int lightDLoc = glGetUniformLocation(baseShader, "uLight.kD");
-    unsigned int lightSLoc = glGetUniformLocation(baseShader, "uLight.kS");*/
-
     unsigned int materialShineLocTex = glGetUniformLocation(textureShader, "uMaterial.shine");
     unsigned int materialALocTex = glGetUniformLocation(textureShader, "uMaterial.kA");
     unsigned int materialDLocTex = glGetUniformLocation(textureShader, "uMaterial.kD");
     unsigned int materialSLocTex = glGetUniformLocation(textureShader, "uMaterial.kS");
+
+
 
     glUseProgram(baseShader);
 
@@ -402,10 +376,12 @@ int main(void)
     glUniform3f(viewPosLoc, CAMERA_X_LOC, CAMERA_Y_LOC, CAMERA_Z_LOC); // Isto kao i pozicija kamere
 
     // Bela svetlost
-    /*glUniform3f(lightPosLoc, 0.0, 0.25, 2.0);
+    glUniform3f(lightPosLoc, -0.35, -3.0f, 0.028);
     glUniform3f(lightALoc, 0.2, 0.2, 0.2);
-    glUniform3f(lightDLoc, 1.0, 1.0, 1.0);
-    glUniform3f(lightSLoc, 1.0, 1.0, 1.0);*/
+    glUniform3f(lightDLoc, 4.0, 4.0, 4.0);
+    glUniform3f(lightSLoc, 4.0, 4.0, 4.0);
+    glUniform1f(lightCutoffLoc, cos(radians(1.0f)));
+    glUniform3f(lightDirLoc, 0.0, 1.0, 0.0);
 
     // Svojstva materijala
     glUniform1f(materialShineLoc, 132.0);      // Uglancanost (manja vrednost za slabiji sjaj)
@@ -415,12 +391,6 @@ int main(void)
     
     glUseProgram(textureShader);
     glUniform3f(viewPosLocTex, CAMERA_X_LOC, CAMERA_Y_LOC, CAMERA_Z_LOC); // Isto kao i pozicija kamere
-
-    // Bela svetlost
-    /*glUniform3f(lightPosLoc, 0.0, 0.25, 2.0);
-    glUniform3f(lightALoc, 0.2, 0.2, 0.2);
-    glUniform3f(lightDLoc, 1.0, 1.0, 1.0);
-    glUniform3f(lightSLoc, 1.0, 1.0, 1.0);*/
 
     // Svojstva materijala
     glUniform1f(materialShineLocTex, 132.0);      // Uglancanost (manja vrednost za slabiji sjaj)
@@ -775,7 +745,7 @@ void renderClouds(unsigned int baseShader, unsigned int cloud1VAO, bool& hasText
     glUniform1f(alphaLoc, 0.5);
     mat4 model1 = mat4(1.0f);
     model1 = scale(model1, vec3(0.1));
-    model1 = translate(model1, vec3(0.0, 6.0, 7.0));
+    model1 = translate(model1, vec3(-2.0, 6.0, 1.0));
     glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model1));
 
     glDisable(GL_CULL_FACE);
@@ -785,7 +755,7 @@ void renderClouds(unsigned int baseShader, unsigned int cloud1VAO, bool& hasText
     glUniform1f(alphaLoc, 0.5);
     mat4 model3 = mat4(1.0f);
     model3 = scale(model3, vec3(0.1));
-    model3 = translate(model3, vec3(11.0, 7.8, 15.0));
+    model3 = translate(model3, vec3(-6.0, 7.8, 1.0));
     glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model3));
     glDrawArrays(GL_TRIANGLES, 0, cloud1.vertices.size());
 
@@ -1126,4 +1096,31 @@ void processNode(aiNode* node, const aiScene* scene, ModelData& modelData) {
     for (unsigned int i = 0; i < node->mNumChildren; ++i) {
         processNode(node->mChildren[i], scene, modelData);
     }
+}
+void setupModelVAO(unsigned int& VAO, unsigned int& VBO, const ModelData& modelData) {
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+    size_t bufferSize = modelData.vertices.size() * sizeof(vec3) + modelData.textureCoords.size() * sizeof(vec2) + modelData.normals.size() * sizeof(vec3);
+    vector<char> bufferData(bufferSize);
+
+    memcpy(bufferData.data(), modelData.vertices.data(), modelData.vertices.size() * sizeof(vec3));
+    memcpy(bufferData.data() + modelData.vertices.size() * sizeof(vec3), modelData.textureCoords.data(), modelData.textureCoords.size() * sizeof(vec2));
+    memcpy(bufferData.data() + modelData.vertices.size() * sizeof(vec3) + modelData.textureCoords.size() * sizeof(vec2), modelData.normals.data(), modelData.normals.size() * sizeof(vec3));
+
+    glBufferData(GL_ARRAY_BUFFER, bufferSize, bufferData.data(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(vec2), (void*)(modelData.vertices.size() * sizeof(vec3)));
+    glEnableVertexAttribArray(1);
+
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void*)(modelData.vertices.size() * sizeof(vec3) + modelData.textureCoords.size() * sizeof(vec2)));
+    glEnableVertexAttribArray(2);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
 }
