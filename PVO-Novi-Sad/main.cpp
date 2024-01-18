@@ -5,7 +5,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 
 #define CRES 30
-#define DRONES_LEFT 7
+#define DRONES_LEFT 12
 #define LOW_HELICOPTER_NUM 5
 #define HELICOPTER_NUM 5
 #define PI 3.141592
@@ -47,7 +47,6 @@ struct ModelData {
 };
 
 
-
 void setXZCircle(float  circle[96], float r, float xPomeraj, float zPomeraj);
 void setXYCircle(float  circle[96], float r, float xPomeraj, float zPomeraj);
 static unsigned loadImageToTexture(const char* filePath);
@@ -68,6 +67,7 @@ unsigned int createShader(const char* vsSource, const char* fsSource);
 ModelData loadModel(const char* filePath);
 void processMesh(aiMesh* mesh, const aiScene* scene, ModelData& modelData);
 void processNode(aiNode* node, const aiScene* scene, ModelData& modelData);
+void setupModelVAO(unsigned int& VAO, unsigned int& VBO, const ModelData& modelData);
 
 
 struct Location {
@@ -84,8 +84,8 @@ struct Location3D {
 float droneX = 0.0f;
 float droneY = 0.0f;
 float droneZ = -0.45f;
-float lowDroneSpeed = 0.0002f / 3.0;
-float helicopterSpeed = 0.0001f;
+float helicopterSpeed = 0.0003f;
+float droneSpeed = 0.0008f;
 bool isSpacePressed = false;
 bool wasSpacePressed = false;
 bool coptersOnScreen = true;
@@ -154,82 +154,33 @@ int main(void)
      1.0, -0.01,  1.0,    1.0, 1.0
     };
 
-    // *********************************************************************** MODELI ***********************************************************************
+    // ********************************************** MODELI **********************************************
     // 
-    // Planina ----------------------------------------------------------------------------------------------------------
-    const char* modelPath1 = "res/mountain/Mountain.obj";
-    ModelData mountain = loadModel(modelPath1);
-
+    // Planina --------------------------------------------------------------
+    ModelData mountain = loadModel("res/mountain/Mountain.obj");
     unsigned int mountainVAO, mountainVBO;
-    glGenVertexArrays(1, &mountainVAO);
-    glGenBuffers(1, &mountainVBO);
-    glBindVertexArray(mountainVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, mountainVBO);
-    glBufferData(GL_ARRAY_BUFFER, mountain.vertices.size() * sizeof(vec3), &mountain.vertices[0], GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
+    setupModelVAO(mountainVAO, mountainVBO, mountain);
 
-    // Dron ------------------------------------------------------------------------------------------------------------
-    const char* modelPath2 = "res/drone/Drone.obj";
-    ModelData drone = loadModel(modelPath2);
-
+    // Dron -----------------------------------------------------------------
+    ModelData drone = loadModel("res/drone/Drone.obj");
     unsigned int droneVAO, droneVBO;
-    glGenVertexArrays(1, &droneVAO);
-    glGenBuffers(1, &droneVBO);
-    glBindVertexArray(droneVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, droneVBO);
-    glBufferData(GL_ARRAY_BUFFER, drone.vertices.size() * sizeof(vec3), &drone.vertices[0], GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
+    setupModelVAO(droneVAO, droneVBO, drone);
 
-    // Oblak ------------------------------------------------------------------------------------------------------------
-    const char* modelPath3 = "res/clouds/Cloud.obj";
-    ModelData cloud = loadModel(modelPath3);
-
+    // Oblak ----------------------------------------------------------------
+    ModelData cloud = loadModel("res/clouds/Cloud.obj");
     unsigned int cloudVAO, cloudVBO;
-    glGenVertexArrays(1, &cloudVAO);
-    glGenBuffers(1, &cloudVBO);
-    glBindVertexArray(cloudVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, cloudVBO);
-    glBufferData(GL_ARRAY_BUFFER, cloud.vertices.size() * sizeof(vec3), &cloud.vertices[0], GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
+    setupModelVAO(cloudVAO, cloudVBO, cloud);
 
-    // Baza ------------------------------------------------------------------------------------------------------------
-    const char* modelPath4 = "res/base/Base.obj";
-    ModelData base = loadModel(modelPath4);
-
+    // Baza -----------------------------------------------------------------
+    ModelData base = loadModel("res/base/Base.obj");
     unsigned int baseVAO, baseVBO;
-    glGenVertexArrays(1, &baseVAO);
-    glGenBuffers(1, &baseVBO);
-    glBindVertexArray(baseVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, baseVBO);
-    glBufferData(GL_ARRAY_BUFFER, base.vertices.size() * sizeof(vec3), &base.vertices[0], GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
+    setupModelVAO(baseVAO, baseVBO, base);
 
-    // Baza ------------------------------------------------------------------------------------------------------------
-    const char* modelPath5 = "res/helicopter/Helicopter.obj";
-    ModelData helicopter = loadModel(modelPath5);
 
+    // Helikopter -----------------------------------------------------------
+    ModelData helicopter = loadModel("res/helicopter/Helicopter.obj");
     unsigned int helicopterVAO, helicopterVBO;
-    glGenVertexArrays(1, &helicopterVAO);
-    glGenBuffers(1, &helicopterVBO);
-    glBindVertexArray(helicopterVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, helicopterVBO);
-    glBufferData(GL_ARRAY_BUFFER, helicopter.vertices.size() * sizeof(vec3), &helicopter.vertices[0], GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
+    setupModelVAO(helicopterVAO, helicopterVBO, helicopter);
 
     // ******************************************************************************************************************************************************
 
@@ -408,16 +359,16 @@ int main(void)
     glUniformMatrix4fv(viewLocBase, 1, GL_FALSE, value_ptr(view));
     glUniformMatrix4fv(projectionLocBase, 1, GL_FALSE, value_ptr(projection));
 
-    glUniform3f(viewPosLoc, CAMERA_X_LOC, CAMERA_Y_LOC, CAMERA_Z_LOC); //Isto kao i pozicija kamere
+    glUniform3f(viewPosLoc, CAMERA_X_LOC, CAMERA_Y_LOC, CAMERA_Z_LOC); // Isto kao i pozicija kamere
 
     // Bela svetlost
     glUniform3f(lightPosLoc, 0.0, 0.25, 2.0);
-    glUniform3f(lightALoc, 0.8, 0.8, 0.8);
+    glUniform3f(lightALoc, 0.2, 0.2, 0.2);
     glUniform3f(lightDLoc, 1.0, 1.0, 1.0);
-    glUniform3f(lightSLoc, 0.0, 0.0, 1.0);
+    glUniform3f(lightSLoc, 1.0, 1.0, 1.0);
 
     // Svojstva materijala
-    glUniform1f(materialShineLoc, 132.0);  // Uglancanost (manja vrednost za slabiji sjaj)
+    glUniform1f(materialShineLoc, 132.0);      // Uglancanost (manja vrednost za slabiji sjaj)
     glUniform3f(materialALoc, 0.7, 0.7, 0.7);  // Ambijentalna refleksija materijala (siva)
     glUniform3f(materialDLoc, 0.8, 0.8, 0.8);  // Difuzna refleksija materijala (svetlo siva)
     glUniform3f(materialSLoc, 0.8, 0.8, 0.8);  // Spekularna refleksija materijala (siva)
@@ -549,7 +500,7 @@ int main(void)
 
         if (wasSpacePressed && dronesLeft > 0)
         {
-            moveDrone(window, droneX, droneZ, lowDroneSpeed, wWidth, wHeight);
+            moveDrone(window, droneX, droneZ, droneSpeed, wWidth, wHeight);
 
             // Renderovanje 2D drona
             glUseProgram(dronShader);
@@ -565,11 +516,11 @@ int main(void)
 
             if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
             {
-                droneY += lowDroneSpeed;
+                droneY += droneSpeed;
             }
             if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
             {
-                droneY -= lowDroneSpeed;
+                droneY -= droneSpeed;
             }
 
             // Renderovanje 3D drona
@@ -644,10 +595,10 @@ int main(void)
             }
         }
 
-        moveLowHelicoptersTowardsCityCenter(0.42, 0.08, lowDroneSpeed / 3);
+        moveLowHelicoptersTowardsCityCenter(0.42, 0.08, helicopterSpeed / 3);
 
         // Renderovanje planine ------------------------------------------------------------------------------
-        renderMountain(baseShader, mountainVAO, mapTexture, model, modelLocBase, mountain);
+        //renderMountain(baseShader, mountainVAO, mapTexture, model, modelLocBase, mountain);
 
         // Renderovanje seta oblaka --------------------------------------------------------------------------
         bool hasTexture2 = false;
@@ -661,9 +612,7 @@ int main(void)
 
             mat4 modelH = mat4(1.0f);
             modelH = scale(modelH, vec3(0.01));
-            //modelH = rotate(modelH, 0.5f, vec3(1.0f, 0.0f, 0.0f));
             modelH = translate(modelH, vec3(helicopterPositions[i].x, helicopterPositions[i].y, helicopterPositions[i].z));
-            
 
             glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(modelH));
             glUniform3f(colorLoc, 0.0, 1.0, 1.0);
@@ -672,7 +621,7 @@ int main(void)
             glBindVertexArray(0);
         }
 
-        moveHelicoptersTowardsCityCenter(-0.38 * 100, 1.0, 0.08 * 100, lowDroneSpeed * 1000);
+        moveHelicoptersTowardsCityCenter(-0.38 * 100, 1.0, 0.08 * 100, helicopterSpeed * 100);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -724,9 +673,6 @@ void renderBase(unsigned int baseShader, unsigned int baseVAO, int& colorLoc, un
     modelB = scale(modelB, vec3(1.0));
     modelB = translate(modelB, vec3(0.0, 0.0, -0.45));
     glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(modelB));
-    GLuint alphaLoc2 = glGetUniformLocation(baseShader, "uAlpha"); // Izbrisi ovo kad napravis svetlo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    glUniform1f(alphaLoc2, 0.1); // I ovo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
     glDrawArrays(GL_TRIANGLES, 0, base.vertices.size());
     glBindVertexArray(0);
     glDisable(GL_BLEND);
@@ -763,7 +709,6 @@ void renderClouds(unsigned int baseShader, unsigned int cloud1VAO, bool& hasText
     glUseProgram(baseShader);
     glBindVertexArray(cloud1VAO);
 
-    // Renderovanje prednjeg oblaka seta
     glUniform1i(glGetUniformLocation(baseShader, "useTexture"), hasTexture);
     colorLoc = glGetUniformLocation(baseShader, "color");
     glUniform3f(colorLoc, 0.7, 0.7, 0.7);
@@ -777,27 +722,12 @@ void renderClouds(unsigned int baseShader, unsigned int cloud1VAO, bool& hasText
     glDisable(GL_CULL_FACE);
     glDrawArrays(GL_TRIANGLES, 0, cloud1.vertices.size());
 
-    // Renderovanje zadnjeg oblaka seta
-    glUniform1f(alphaLoc, 0.5);
-    mat4 model2 = mat4(1.0f);
-    model2 = scale(model2, vec3(0.1));
-    model2 = translate(model2, vec3(0.0, 6.8, 9.0));
-    glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model2));
-    glDrawArrays(GL_TRIANGLES, 0, cloud1.vertices.size());
-
-    // Renderovanje 2. seta oblaka ---- ---- ---- ---- ---- ---- .-.. .- .-. .- ---- ---- ---- ---- ---- ---- ----
+    // Renderovanje 2. oblaka ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
     glUniform1f(alphaLoc, 0.5);
     mat4 model3 = mat4(1.0f);
     model3 = scale(model3, vec3(0.1));
     model3 = translate(model3, vec3(11.0, 7.8, 15.0));
     glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model3));
-    glDrawArrays(GL_TRIANGLES, 0, cloud1.vertices.size());
-
-    glUniform1f(alphaLoc, 0.5);
-    mat4 model4 = mat4(1.0f);
-    model4 = scale(model4, vec3(0.1));
-    model4 = translate(model4, vec3(10.0, 7.8, 16.0));
-    glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model4));
     glDrawArrays(GL_TRIANGLES, 0, cloud1.vertices.size());
 
     glBindVertexArray(0);
@@ -1137,4 +1067,31 @@ void processNode(aiNode* node, const aiScene* scene, ModelData& modelData) {
     for (unsigned int i = 0; i < node->mNumChildren; ++i) {
         processNode(node->mChildren[i], scene, modelData);
     }
+}
+void setupModelVAO(unsigned int& VAO, unsigned int& VBO, const ModelData& modelData) {
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+    size_t bufferSize = modelData.vertices.size() * sizeof(vec3) + modelData.textureCoords.size() * sizeof(vec2) + modelData.normals.size() * sizeof(vec3);
+    vector<char> bufferData(bufferSize);
+
+    memcpy(bufferData.data(), modelData.vertices.data(), modelData.vertices.size() * sizeof(vec3));
+    memcpy(bufferData.data() + modelData.vertices.size() * sizeof(vec3), modelData.textureCoords.data(), modelData.textureCoords.size() * sizeof(vec2));
+    memcpy(bufferData.data() + modelData.vertices.size() * sizeof(vec3) + modelData.textureCoords.size() * sizeof(vec2), modelData.normals.data(), modelData.normals.size() * sizeof(vec3));
+
+    glBufferData(GL_ARRAY_BUFFER, bufferSize, bufferData.data(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(vec2), (void*)(modelData.vertices.size() * sizeof(vec3)));
+    glEnableVertexAttribArray(1);
+
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void*)(modelData.vertices.size() * sizeof(vec3) + modelData.textureCoords.size() * sizeof(vec2)));
+    glEnableVertexAttribArray(2);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
 }
