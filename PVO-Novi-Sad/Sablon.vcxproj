@@ -149,6 +149,8 @@
     <None Include="base.vert" />
     <None Include="dron.frag" />
     <None Include="dron.vert" />
+    <None Include="name_surname.frag" />
+    <None Include="name_surname.vert" />
     <None Include="packages.config" />
     <None Include="texture.frag" />
     <None Include="texture.vert" />

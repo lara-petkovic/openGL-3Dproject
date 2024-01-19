@@ -143,6 +143,7 @@ int main(void)
     unsigned int textureShader = createShader("texture.vert", "texture.frag");
     unsigned int baseShader = createShader("base.vert", "base.frag");
     unsigned int dronShader = createShader("dron.vert", "dron.frag");
+    unsigned int nameSurnameShader = createShader("name_surname.vert", "name_surname.frag");
     int colorLoc = glGetUniformLocation(textureShader, "color");
 
     float vertices[] = {
@@ -153,6 +154,17 @@ int main(void)
 
      1.0, -0.01, -1.0,    1.0, 0.0,   0.0, 1.0, 0.0,
      1.0, -0.01,  1.0,    1.0, 1.0,   0.0, 1.0, 0.0
+    };
+
+    float nameSurnameVertices[] = {
+        // X     Y         S    T  
+         -1.0,  0.85,     0.0, 1.0,     
+         -0.4,  0.85,     1.0, 1.0,
+         -0.4,   1.0,     1.0, 0.0, 
+
+         -1.0,  0.85,     0.0, 1.0, 
+         -0.4,   1.0,     1.0, 0.0,
+         -1.0,   1.0,     0.0, 0.0
     };
 
     // ********************************************** MODELI **********************************************
@@ -190,6 +202,31 @@ int main(void)
 
 
     unsigned int stride = (3 + 2 + 3) * sizeof(float);
+    unsigned int nameSurnameStride = (2 + 2) * sizeof(float);
+
+    unsigned nameSurnameTexture = loadImageToTexture("res/name-surname.png");
+
+    unsigned int nameSurnameVAO;
+    unsigned int nameSurnameVBO;
+
+    glGenVertexArrays(1, &nameSurnameVAO);
+    glGenBuffers(1, &nameSurnameVBO);
+
+    glBindVertexArray(nameSurnameVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, nameSurnameVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(nameSurnameVertices), nameSurnameVertices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, nameSurnameStride, (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, nameSurnameStride, (void*)(2 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    glBindTexture(GL_TEXTURE_2D, nameSurnameTexture);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, 0);
 
     unsigned int VAO[2];
     glGenVertexArrays(2, VAO);
@@ -644,6 +681,21 @@ int main(void)
         }
 
         moveHelicoptersTowardsCityCenter(-0.38 * 100, 1.0, 0.08 * 100, helicopterSpeed * 100);
+
+        // Renderovanje imena i prezimena ---------------------------------------------
+        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glUseProgram(nameSurnameShader);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, nameSurnameTexture);
+        glBindVertexArray(nameSurnameVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glUseProgram(baseShader);
+        glDisable(GL_BLEND);
+        glEnable(GL_DEPTH_TEST);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
