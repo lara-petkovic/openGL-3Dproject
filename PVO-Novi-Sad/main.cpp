@@ -103,6 +103,8 @@ int main(void)
     float reflectorSpeed = 0.0001f;
     float reflectorAngle = 0.5f;
 
+    float droneCircleRadius = 1.0f;
+
     if (!glfwInit())
     {
         cout << "Greska pri ucitavanju GLFW biblioteke!\n";
@@ -198,15 +200,15 @@ int main(void)
     unsigned int helicopterVAO, helicopterVBO;
     setupModelVAO(helicopterVAO, helicopterVBO, helicopter);
 
-    // ******************************************************************************************************************************************************
+    // *****************************************************************************************************
 
     glUseProgram(0);
-
 
 
     unsigned int stride = (3 + 2 + 3) * sizeof(float);
     unsigned int nameSurnameStride = (2 + 2) * sizeof(float);
 
+    // Tekstura imena i prezimena ------------------------------------------------------------
     unsigned nameSurnameTexture = loadImageToTexture("res/name-surname.png");
 
     unsigned int nameSurnameVAO;
@@ -231,12 +233,12 @@ int main(void)
     glGenerateMipmap(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);
 
+    // VAO i VBO teksture -------------------------------------------------------------   
     unsigned int VAO[2];
     glGenVertexArrays(2, VAO);
     unsigned int VBO[2];
     glGenBuffers(2, VBO);
 
-    // VAO i VBO teksture -------------------------------------------------------------    
     glGenVertexArrays(1, &VAO[0]);
     glBindVertexArray(VAO[0]);
     glGenBuffers(1, &VBO[0]);
@@ -425,18 +427,18 @@ int main(void)
 
     // Svojstva materijala
     glUniform1f(materialShineLoc, 132.0);      // Uglancanost (manja vrednost za slabiji sjaj)
-    glUniform3f(materialALoc, 0.2, 0.2, 0.2);  // Ambijentalna refleksija materijala (siva)
-    glUniform3f(materialDLoc, 0.5, 0.5, 0.5);  // Difuzna refleksija materijala (svetlo siva)
-    glUniform3f(materialSLoc, 0.7, 0.7, 0.7);  // Spekularna refleksija materijala (siva)
+    glUniform3f(materialALoc, 0.2, 0.2, 0.2);  // Ambijentalna refleksija materijala
+    glUniform3f(materialDLoc, 0.5, 0.5, 0.5);  // Difuzna refleksija materijala
+    glUniform3f(materialSLoc, 0.7, 0.7, 0.7);  // Spekularna refleksija materijala
     
     glUseProgram(textureShader);
     glUniform3f(viewPosLocTex, CAMERA_X_LOC, CAMERA_Y_LOC, CAMERA_Z_LOC); // Isto kao i pozicija kamere
 
-    // Svojstva materijala
-    glUniform1f(materialShineLocTex, 132.0);      // Uglancanost (manja vrednost za slabiji sjaj)
-    glUniform3f(materialALocTex, 0.2, 0.2, 0.2);  // Ambijentalna refleksija materijala (siva)
-    glUniform3f(materialDLocTex, 0.5, 0.5, 0.5);  // Difuzna refleksija materijala (svetlo siva)
-    glUniform3f(materialSLocTex, 0.7, 0.7, 0.7);  // Spekularna refleksija materijala (siva)
+    // Svojstva materijala teksture
+    glUniform1f(materialShineLocTex, 132.0);      // Uglancanost
+    glUniform3f(materialALocTex, 0.2, 0.2, 0.2);  // Ambijentalna refleksija materijala
+    glUniform3f(materialDLocTex, 0.5, 0.5, 0.5);  // Difuzna refleksija materijala
+    glUniform3f(materialSLocTex, 0.7, 0.7, 0.7);  // Spekularna refleksija materijala
     glUseProgram(baseShader);
 
     bool wasXpressed = false;
@@ -489,7 +491,7 @@ int main(void)
 
         glUseProgram(textureShader);
         model[0] *= -1;
-        glUniformMatrix4fv(modelLocTex, 1, GL_FALSE, value_ptr(model)); //(Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
+        glUniformMatrix4fv(modelLocTex, 1, GL_FALSE, value_ptr(model)); // (Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
         glUniformMatrix4fv(viewLocTex, 1, GL_FALSE, value_ptr(view));
         glUniformMatrix4fv(projectionLocTex, 1, GL_FALSE, value_ptr(projection));
         glBindVertexArray(VAO[0]);
@@ -569,23 +571,28 @@ int main(void)
             moveDrone(window, droneX, droneZ, droneSpeed, wWidth, wHeight);
 
             // Renderovanje 2D drona
-            mat4 modelKrug = translate(model, vec3(droneX, 0.01f, droneZ));
-            glUseProgram(baseShader);
-            glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(modelKrug));
-            glBindVertexArray(VAOBlue);
-            /*GLint translationLoc = glGetUniformLocation(baseShader, "uTranslation");
-            glUniform2f(translationLoc, droneX, droneZ);*/
-            colorLoc = glGetUniformLocation(baseShader, "color");
-            glUniform3f(colorLoc, 0.0, 0.0, 1.0);
-            glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(blueCircle) / (3 * sizeof(float)));
+            
             if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
             {
                 droneY += droneSpeed;
+                droneCircleRadius += droneSpeed;
             }
             if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
             {
                 droneY -= droneSpeed;
+                droneCircleRadius -= droneSpeed;
             }
+
+            glUseProgram(baseShader);
+            mat4 modelKrug = translate(model, vec3(droneX, 0.1f, droneZ));
+            modelKrug = scale(modelKrug, vec3(droneCircleRadius));
+            glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(modelKrug));
+            glBindVertexArray(VAOBlue);
+            colorLoc = glGetUniformLocation(baseShader, "color");
+            glUniform3f(colorLoc, 0.0, 0.0, 1.0);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(blueCircle), blueCircle, GL_STATIC_DRAW); // Update the VBO with the new circle data
+            glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(blueCircle) / (3 * sizeof(float)));
+
             // Renderovanje 3D drona
             glBindVertexArray(droneVAO);
             mat4 model3D = mat4(1.0f);
@@ -964,7 +971,7 @@ void moveDrone(GLFWwindow* window, float& droneX, float& droneY, float droneSpee
     }
 }
 
-void setXZCircle(float  circle[96], float r, float xPomeraj, float zPomeraj)
+void setXZCircle(float circle[96], float r, float xPomeraj, float zPomeraj)
 {
     float centerX = 0.0;
     float centerY = 0.0;
