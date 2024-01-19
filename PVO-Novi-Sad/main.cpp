@@ -99,6 +99,9 @@ auto startTime = chrono::high_resolution_clock::now();
 
 int main(void)
 {
+    float reflectorRadius = 3.0f;
+    float reflectorSpeed = 0.0001f;
+    float reflectorAngle = 0.5f;
 
     if (!glfwInit())
     {
@@ -697,6 +700,14 @@ int main(void)
         glDisable(GL_BLEND);
         glEnable(GL_DEPTH_TEST);
 
+        // Pomeranje reflektora u krug - - - - - - - - - - - - - - - - - - - - - - - - -
+        reflectorAngle += reflectorSpeed * elapsedTime;
+        float reflectorX = 0.1f * reflectorRadius * cos(reflectorAngle);
+        float reflectorZ = 0.1f * reflectorRadius * sin(reflectorAngle);
+
+        glUseProgram(baseShader);
+        glUniform3f(lightPosLoc, reflectorX, -3.0f, reflectorZ);
+
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
@@ -806,7 +817,7 @@ void renderClouds(unsigned int baseShader, unsigned int cloud1VAO, bool& hasText
     glUniform1f(alphaLoc, 0.5);
     mat4 model3 = mat4(1.0f);
     model3 = scale(model3, vec3(0.1));
-    model3 = translate(model3, vec3(-6.0, 7.8, 1.0));
+    model3 = translate(model3, vec3(6.0, 7.8, 10.0));
     glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model3));
     glDrawArrays(GL_TRIANGLES, 0, cloud1.vertices.size());
 
