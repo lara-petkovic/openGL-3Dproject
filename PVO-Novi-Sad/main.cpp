@@ -702,6 +702,9 @@ int main(void)
     }
 
     glDeleteTextures(1, &mapTexture);
+    glDeleteTextures(1, &nameSurnameTexture);
+    glDeleteBuffers(1, &nameSurnameVBO);
+    glDeleteVertexArrays(1, &nameSurnameVAO);
     glDeleteBuffers(2, VBO);
     glDeleteVertexArrays(2, VAO);
     glDeleteBuffers(1, &VBOBlue);
