@@ -8,6 +8,7 @@ Ensure that you have the following dependencies installed before running the pro
 
 - glew-2.2.0
 - glfw
+- glm
 
 ## Controls
 - **Arrow Keys:** Move the drone
