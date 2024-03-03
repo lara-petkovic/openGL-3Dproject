@@ -47,4 +47,4 @@ Ensure that you have the following dependencies installed before running the pro
 ![PVO-NS](https://github.com/lara-petkovic/openGL-3Dproject/assets/116621727/ac56f85a-4c46-4021-95fc-2716207d1330)
 
 ## Specification (Serbian)
-![spec](https://github.com/lara-petkovic/openGL-3Dproject/assets/116621727/c558e73e-f886-4012-b6fe-76ee23ef2410)
+![spec](https://github.com/lara-petkovic/openGL-3Dproject/assets/116621727/f16f6b9b-952a-48f1-af79-2b3df755b572)
